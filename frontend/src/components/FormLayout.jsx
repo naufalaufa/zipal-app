@@ -1,0 +1,115 @@
+import { useState } from "react";
+import { Badge, Button, Checkbox, Form, Input, message } from "antd";
+import ReCAPTCHA from "react-google-recaptcha";
+import api from "../api";
+
+const FormLayout = () => {
+  const [loading, setLoading] = useState(false);
+  const [captchaVal, setCaptchaVal] = useState(null);
+  const [isRemember , setIsRemember] = useState(null)
+  
+  const onChange = e => {
+    if(e.target.checked === false) {
+       console.log('hehehehe false')
+       setIsRemember(false)
+    } else {
+       console.log('hehehehe true')
+       setIsRemember(true)
+    }
+    console.log(`checked = ${e.target.checked}`);
+  };
+
+  const onFinish = async (values) => {
+    if (!captchaVal) {
+      message.error("Please Check Your Recaptcha!");
+      return;
+    }
+
+    if(isRemember === false) {
+       message.error("Please check the 'Remember Me' box to continue.");
+       return
+    }
+
+    setLoading(true);
+
+    try {
+        const response = await api.post("/login", {
+        username: values.username,
+        password: values.password,
+      });
+
+       message.success("Login Berhasil! Selamat datang " + response.data.data.username);
+       localStorage.setItem("user", JSON.stringify(response.data.data));
+       setTimeout(() => {
+         window.location.href = "/dashboard";
+       } , 1000)
+
+     } catch (error) {
+       if (error.response) {
+           message.error(error.response.data.message);
+       }  else {
+           message.error("Gagal koneksi ke server Backend!");
+       }
+      } finally {
+          setLoading(false); 
+    }
+  };
+
+  const handleCaptchaChange = (value) => {
+    setCaptchaVal(value); 
+  };
+
+  return (
+    <>
+    <div>
+    <Badge.Ribbon text="Zipal 🧑‍🦱👧"></Badge.Ribbon>
+    <Form
+        layout="vertical"
+        className="login-form"
+        requiredMark={false}
+        onFinish={onFinish} 
+      >
+        <Form.Item
+          label="Username"
+          name="username"
+          rules={[{ required: true, message: "Please input your username!" }]}
+        >
+          <Input placeholder="Enter your username" />
+        </Form.Item>
+
+        <Form.Item
+          label="Password"
+          name="password"
+          rules={[{ required: true, message: "Please input your password!" }]}
+        >
+          <Input.Password placeholder="Enter your password" />
+        </Form.Item>
+
+        <Form.Item name="remember" valuePropName="checked">
+          <Checkbox onChange={onChange} className="text-white">Remember me</Checkbox>
+        </Form.Item>
+
+        <Form.Item>
+          <ReCAPTCHA
+            sitekey={import.meta.env.VITE_SITE_KEY_RECAPTCHA_PRODUCTION}
+            className="captcha-container"
+            onChange={handleCaptchaChange}
+          />
+          
+          <Button
+            type="primary"
+            htmlType="submit"
+            block
+            style={{ marginTop: "15px" }}
+            loading={loading}
+          >
+             Submit
+          </Button>
+        </Form.Item>
+      </Form>
+    </div>
+    </>
+  );
+};
+
+export default FormLayout;

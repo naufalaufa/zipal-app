@@ -1,0 +1,106 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
+
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+}
+
+:root {
+  --primary-color: #4f46e5;
+  --secondary-color: #ec4899;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --border-radius-lg: 12px;
+  --sidebar-width: 250px;
+  --font-heading: 'Poppins', sans-serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+.login-layout {
+  width: 100vw;
+  height: 100vh;
+  background: linear-gradient(to right, var(--secondary-color), #ffffff);
+  place-content: center;
+  place-items: center;
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+}
+
+.login-form {
+  background-color: var(--primary-color);
+  padding: 40px;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.sidetext-layout-container {
+  background: linear-gradient(10deg, var(--secondary-color), var(--primary-color));  color: white;
+  height: 100vh;
+  width: 100%;
+  display: grid;
+  place-content: center;
+  place-items: center;
+}
+
+.login-form .ant-form-item-label > label {
+  color: white !important;
+  font-weight: 500;
+}
+
+.login-form .ant-checkbox-wrapper {
+  color: white !important;
+}
+
+.captcha-container {
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.ant-input, .ant-input-password {
+  border-radius: 8px !important;
+  padding: 8px 12px;
+}
+
+/* mobile devices */
+
+@media (max-width: 768px) {
+  .login-layout {
+    grid-template-columns: 1fr;
+    height: auto; 
+    min-height: 100vh;
+    padding: 20px; 
+    gap: 30px; 
+  }
+
+  .login-form {
+    width: 100%; 
+    padding: 30px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .login-layout {
+    grid-template-columns: 1fr;
+    height: auto; 
+    min-height: 100vh;
+    padding: 20px; 
+    gap: 0;
+  }
+
+  .login-form {
+    width: 100%; 
+    padding: 30px 20px;
+  }
+
+  .sidetext-layout-container {
+    display: none;
+  }
+}
