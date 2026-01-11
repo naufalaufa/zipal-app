@@ -13,7 +13,7 @@ const PORT = 5000;
 
 app.use(express.json()); 
 app.use(cors({
-    origin: 'http://192.168.1.7:5173',
+    origin:  `${process.env.CLIENT_URL}`,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
 }));
@@ -335,3 +335,5 @@ app.get('/investments', (req, res) => {
 app.listen(PORT, '0.0.0.0' , () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
+
+module.exports = app;
