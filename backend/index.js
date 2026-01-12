@@ -26,15 +26,14 @@ app.use('/public/uploads', express.static(path.join(__dirname, 'public/uploads')
 // ==================================================================
 
 const dbConfig = {
-    host: process.env.DB_HOST,
+    host: 'zipal-db-muhammadnaufalaufarifqi-bafe.c.aivencloud.com', 
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    port: process.env.DB_PORT,
+    port: process.env.DB_PORT, 
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    // Langsung pasang SSL di sini tanpa logic aneh-aneh
     ssl: {
         rejectUnauthorized: false
     }
