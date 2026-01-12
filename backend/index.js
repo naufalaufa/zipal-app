@@ -26,11 +26,17 @@ app.use('/public/uploads', express.static(path.join(__dirname, 'public/uploads')
 // ==================================================================
 
 const dbConfig = {
+    // HOST: Saya ketik ulang manual biar gak ada spasi nyelip
     host: 'zipal-db-muhammadnaufalaufarifqi-bafe.c.aivencloud.com', 
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: process.env.DB_PORT, 
+    
+    // PORT: Ini angka dari screenshot Aiven kamu (PENTING!)
+    port: 11923,
+    
+    // User & Pass tetap ambil dari Env biar aman dikit
+    user: process.env.DB_USER,      // Pastikan di Vercel isinya: avnadmin
+    password: process.env.DB_PASSWORD, // Pastikan Password Aiven benar
+    database: process.env.DB_NAME,  // Pastikan di Vercel isinya: defaultdb
+    
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
