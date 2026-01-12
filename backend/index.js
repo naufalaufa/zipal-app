@@ -21,12 +21,6 @@ app.use(cors({
 
 app.use('/public/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-// ==================================================================
-// 1. KONFIGURASI DATABASE (SUDAH FIX "CLOSED STATE" & SSL)
-// ==================================================================
-
-// Logic: Kalau host bukan localhost/127.0.0.1, berarti kita di Cloud (Vercel/Aiven)
-const isCloudConnection = process.env.DB_HOST !== 'localhost' && process.env.DB_HOST !== '127.0.0.1';
 
 const dbConfig = {
     host: process.env.DB_HOST,
@@ -34,22 +28,19 @@ const dbConfig = {
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: process.env.DB_PORT,
-    waitForConnections: true, // Wajib buat Vercel biar antri kalau penuh
-    connectionLimit: 10,      // Batas maksimal koneksi
+    waitForConnections: true,
+    connectionLimit: 10,
     queueLimit: 0
 };
 
-// Aktifkan SSL hanya jika di Cloud
 if (isCloudConnection) {
     dbConfig.ssl = {
         rejectUnauthorized: false
     };
 }
 
-// PENTING: Pakai createPool!
 const db = mysql.createPool(dbConfig);
 
-// Cek koneksi (Opsional, buat log doang)
 db.getConnection((err, connection) => {
     if (err) {
         console.error('❌ Error koneksi database:', err.message);
@@ -60,12 +51,8 @@ db.getConnection((err, connection) => {
 });
 
 
-// ==================================================================
-// 2. MIDDLEWARE JWT (SATPAM)
-// ==================================================================
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
-    // Format: "Bearer <token>" -> ambil bagian kedua
     const token = authHeader && authHeader.split(' ')[1];
 
     if (token == null) return res.status(401).json({ status: 'fail', message: 'Anda belum login (Token tidak ada)' });
