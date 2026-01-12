@@ -19,41 +19,41 @@ const FormLayout = () => {
     console.log(`checked = ${e.target.checked}`);
   };
 
-  const onFinish = async (values) => {
-    if (!captchaVal) {
-      message.error("Please Check Your Recaptcha!");
-      return;
-    }
 
-    if(isRemember === false) {
-       message.error("Please check the 'Remember Me' box to continue.");
-       return
-    }
+  const onFinish = async (values) => {
 
     setLoading(true);
 
     try {
-        const response = await api.post("/login", {
+      const response = await api.post("/login", {
         username: values.username,
         password: values.password,
       });
 
-       message.success("Login Berhasil! Selamat datang " + response.data.data.username);
-       localStorage.setItem("user", JSON.stringify(response.data.data));
-       setTimeout(() => {
-         window.location.href = "/dashboard";
-       } , 1000)
+      const { accessToken, refreshToken, data } = response.data;
 
-     } catch (error) {
-       if (error.response) {
-           message.error(error.response.data.message);
-       }  else {
-           message.error("Gagal koneksi ke server Backend!");
-       }
-      } finally {
-          setLoading(false); 
+      localStorage.setItem("token", accessToken);       // Access Token (Kunci masuk)
+      localStorage.setItem("refreshToken", refreshToken); // Refresh Token (Cadangan)
+      
+      localStorage.setItem("user", JSON.stringify(data));
+
+      message.success("Login Berhasil! Selamat datang " + data.username);
+      
+      setTimeout(() => {
+        window.location.href = "/dashboard";
+      }, 1000);
+
+    } catch (error) {
+      if (error.response) {
+        message.error(error.response.data.message);
+      } else {
+        message.error("Gagal koneksi ke server Backend!");
+      }
+    } finally {
+      setLoading(false);
     }
   };
+
 
   const handleCaptchaChange = (value) => {
     setCaptchaVal(value); 

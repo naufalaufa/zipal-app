@@ -4,7 +4,8 @@ const dotenv = require('dotenv');
 const mysql = require('mysql2'); 
 const multer = require('multer'); 
 const path = require('path');     
-const fs = require('fs');         
+const fs = require('fs');
+const jwt = require('jsonwebtoken')
 
 dotenv.config();
 
@@ -65,35 +66,28 @@ app.put('/profile', upload.single('avatar'), (req, res) => {
         return res.status(400).json({ status: 'fail', message: 'ID User tidak ditemukan!' });
     }
 
-    // 1. Mulai query dasar (Username selalu diupdate)
     let sqlUpdate = "UPDATE users SET username = ?";
     let params = [username];
 
-    // 2. CEK: Apakah user mengirim password baru?
-    // Hanya update password jika string tidak kosong
     if (password && password.trim() !== "") {
         sqlUpdate += ", password = ?";
         params.push(password);
     }
 
-    // 3. CEK: Apakah user upload avatar baru?
     if (avatar) {
         sqlUpdate += ", avatar = ?";
         params.push(avatar);
     }
 
-    // 4. Tambahkan WHERE id di akhir
     sqlUpdate += " WHERE id = ?";
     params.push(id);
 
-    // Eksekusi Query
     db.query(sqlUpdate, params, (err, result) => {
         if (err) {
             console.error("❌ MySQL Error:", err);
             return res.status(500).json({ status: 'error', message: err.message });
         }
 
-        // Ambil data user terbaru untuk dikirim balik ke frontend
         db.query("SELECT * FROM users WHERE id = ?", [id], (err, rows) => {
             if (err) return res.status(500).json({ error: err.message });
             
@@ -107,15 +101,18 @@ app.put('/profile', upload.single('avatar'), (req, res) => {
         });
     });
 });
-// --------------------------------------------------
 
 app.get('/', (req, res) => {
     res.send('Halo Naufal & Zihra! Backend kalian sudah jalan. 🚀');
 });
 
+// Pastikan import ini ada di paling atas file
+
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
-
+    
+    // Note: Idealnya password di-hash (misal pakai bcrypt), jangan plain text.
+    // Tapi untuk tutorial JWT ini, kita fokus ke tokennya dulu.
     const sql = "SELECT * FROM users WHERE username = ? AND password = ?";
 
     db.query(sql, [username, password], (err, result) => {
@@ -124,18 +121,35 @@ app.post('/login', (req, res) => {
         }
 
         if (result.length > 0) {
-            const user = result[0]; 
+            const user = result[0];
+
+            const userPayload = {
+                id: user.id,
+                username: user.username,
+                role: user.role
+            };
+
+            const accessToken = jwt.sign(userPayload, process.env.ACCESS_TOKEN_SECRET, {
+                expiresIn: '15m' // Token kadaluwarsa dalam 15 menit
+            });
+
+            const refreshToken = jwt.sign(userPayload, process.env.REFRESH_TOKEN_SECRET, {
+                expiresIn: '7d' 
+            });
 
             res.json({
                 status: 'success',
                 message: 'Login Berhasil!',
+                accessToken: accessToken, 
+                refreshToken: refreshToken,
                 data: {
                     id: user.id,
                     username: user.username,
-                    role: user.role, 
-                    avatar: user.avatar 
+                    role: user.role,
+                    avatar: user.avatar
                 }
             });
+
         } else {
             res.status(401).json({
                 status: 'fail',
