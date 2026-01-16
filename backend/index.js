@@ -68,7 +68,6 @@ app.put('/profile', (req, res) => {
         console.log("📥 Request Update Profile Masuk...");
         
         const { id, username, password } = req.body;
-        // PENTING: Ambil URL Cloudinary dari 'path'
         const avatar = req.file ? req.file.path : null; 
 
         if (!id) {
@@ -104,8 +103,8 @@ app.put('/profile', (req, res) => {
                 
                 res.json({
                     status: 'success',
-                    message: 'Profile berhasil diupdate!',
-                    user: rows[0]
+                    message: 'Profile Success Update!',
+                    user: rows[0] 
                 });
             });
         });
@@ -339,6 +338,36 @@ app.delete('/goals/:id', (req, res) => {
     db.query("DELETE FROM financial_goals WHERE id = ?", [id], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ status: 'success', message: 'Tujuan berhasil dihapus!' });
+    });
+});
+
+app.post('/auth/check-username', (req, res) => {
+    const { username } = req.body;
+    const sql = "SELECT id, username FROM users WHERE username = ?";
+
+    db.query(sql, [username], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        if (result.length > 0) {
+            res.json({ status: 'success', message: 'Username ditemukan', user: result[0] });
+        } else {
+            res.status(404).json({ status: 'fail', message: 'Username tidak terdaftar!' });
+        }
+    });
+});
+
+app.post('/auth/reset-password', (req, res) => {
+    const { username, newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 3) {
+        return res.status(400).json({ status: 'fail', message: 'Password terlalu pendek!' });
+    }
+
+    const sql = "UPDATE users SET password = ? WHERE username = ?";
+    
+    db.query(sql, [newPassword, username], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ status: 'success', message: 'Password berhasil diubah! Silakan login.' });
     });
 });
 
