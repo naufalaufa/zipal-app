@@ -58,22 +58,59 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage: storage });
 
-// Ganti blok app.put('/profile') yang lama dengan yang ini:
 
 app.put('/profile', (req, res) => {
+    // 1. Jalankan Multer (Upload ke Cloudinary)
     upload.single('avatar')(req, res, (err) => {
+        // Cek error upload (misal file kegedean/format salah)
         if (err) return res.status(500).json({ status: 'error', message: err.message });
 
-        // ... logic validasi id, username dll SAMA SEPERTI SEBELUMNYA ...
-        const { id, username, password } = req.body;
+        console.log("📥 Request Update Profile Masuk...");
         
-        // PERUBAHAN PENTING DI SINI:
-        // Kalau upload ke Cloudinary, url fotonya ada di 'req.file.path'
-        // Bukan 'req.file.filename' lagi.
+        // 2. Ambil data dari Body & File
+        const { id, username, password } = req.body;
+        // PENTING: Ambil URL Cloudinary dari 'path'
         const avatar = req.file ? req.file.path : null; 
 
-        // ... logic UPDATE database SAMA SEPERTI SEBELUMNYA ...
-        // Simpan 'avatar' (yang isinya https://res.cloudinary...) ke database
+        if (!id) {
+            return res.status(400).json({ status: 'fail', message: 'ID User tidak ditemukan!' });
+        }
+
+        let sqlUpdate = "UPDATE users SET username = ?";
+        let params = [username];
+
+        if (password && password.trim() !== "") {
+            sqlUpdate += ", password = ?";
+            params.push(password);
+        }
+
+        if (avatar) {
+            sqlUpdate += ", avatar = ?";
+            params.push(avatar);
+        }
+
+        sqlUpdate += " WHERE id = ?";
+        params.push(id);
+
+        db.query(sqlUpdate, params, (err, result) => {
+            if (err) {
+                console.error("❌ MySQL Error:", err);
+                return res.status(500).json({ status: 'error', message: err.message });
+            }
+
+            // 6. Ambil data user terbaru buat dikirim balik ke frontend
+            db.query("SELECT * FROM users WHERE id = ?", [id], (err, rows) => {
+                if (err) return res.status(500).json({ error: err.message });
+                
+                console.log("✅ Profile Berhasil Diupdate:", rows[0].username);
+                
+                res.json({
+                    status: 'success',
+                    message: 'Profile berhasil diupdate!',
+                    user: rows[0] // Kirim data user yang udah ada link Cloudinary-nya
+                });
+            });
+        });
     });
 });
 
