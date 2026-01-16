@@ -16,4 +16,5 @@ export { default as WithdrawModal } from "./WithdrawModal";
 export { default as DepositModal } from "./DepositModal";
 export { default as TableHistory } from "./TableHistory";
 export { default as HeadNavbar } from "./HeadNavbar";
+export { default as ForgotPassword } from "./ForgotPassword";
 export { default as Loading } from "./Loading";

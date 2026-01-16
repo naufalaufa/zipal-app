@@ -60,16 +60,12 @@ const upload = multer({ storage: storage });
 
 
 app.put('/profile', (req, res) => {
-    // 1. Jalankan Multer (Upload ke Cloudinary)
     upload.single('avatar')(req, res, (err) => {
-        // Cek error upload (misal file kegedean/format salah)
         if (err) return res.status(500).json({ status: 'error', message: err.message });
 
         console.log("📥 Request Update Profile Masuk...");
         
-        // 2. Ambil data dari Body & File
         const { id, username, password } = req.body;
-        // PENTING: Ambil URL Cloudinary dari 'path'
         const avatar = req.file ? req.file.path : null; 
 
         if (!id) {
@@ -98,7 +94,6 @@ app.put('/profile', (req, res) => {
                 return res.status(500).json({ status: 'error', message: err.message });
             }
 
-            // 6. Ambil data user terbaru buat dikirim balik ke frontend
             db.query("SELECT * FROM users WHERE id = ?", [id], (err, rows) => {
                 if (err) return res.status(500).json({ error: err.message });
                 
@@ -107,7 +102,7 @@ app.put('/profile', (req, res) => {
                 res.json({
                     status: 'success',
                     message: 'Profile berhasil diupdate!',
-                    user: rows[0] // Kirim data user yang udah ada link Cloudinary-nya
+                    user: rows[0] 
                 });
             });
         });
@@ -340,6 +335,36 @@ app.delete('/goals/:id', (req, res) => {
     db.query("DELETE FROM financial_goals WHERE id = ?", [id], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ status: 'success', message: 'Tujuan berhasil dihapus!' });
+    });
+});
+
+app.post('/auth/check-username', (req, res) => {
+    const { username } = req.body;
+    const sql = "SELECT id, username FROM users WHERE username = ?";
+
+    db.query(sql, [username], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        if (result.length > 0) {
+            res.json({ status: 'success', message: 'Username ditemukan', user: result[0] });
+        } else {
+            res.status(404).json({ status: 'fail', message: 'Username tidak terdaftar!' });
+        }
+    });
+});
+
+app.post('/auth/reset-password', (req, res) => {
+    const { username, newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 3) {
+        return res.status(400).json({ status: 'fail', message: 'Password terlalu pendek!' });
+    }
+
+    const sql = "UPDATE users SET password = ? WHERE username = ?";
+    
+    db.query(sql, [newPassword, username], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ status: 'success', message: 'Password berhasil diubah! Silakan login.' });
     });
 });
 

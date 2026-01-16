@@ -3,7 +3,7 @@ const SideTextLayout = () => {
     <>
       <div className="sidetext-layout-container">
           <h1>ZIPAL 👧🧑‍🦱</h1>
-          <p>Zihra Naufal Private Data Recap</p>
+          <h6>Zihra Naufal Private Data Recap</h6>
       </div>
     </>
   )
