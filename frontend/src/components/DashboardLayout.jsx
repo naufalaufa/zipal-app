@@ -53,12 +53,18 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const updateUserData = useCallback(() => {
+ const updateUserData = useCallback(() => {
     const latestUser = JSON.parse(localStorage.getItem('user')) || { username: 'Guest' };
     setCurrentUser(latestUser);
     
     if (latestUser.avatar) {
-      setAvatarUrl(`${import.meta.env.VITE_API_URL}/public/uploads/${latestUser.avatar}?t=${Date.now()}`);
+      const isCloudinary = latestUser.avatar.startsWith('http');
+
+      if (isCloudinary) {
+        setAvatarUrl(latestUser.avatar);
+      } else {
+        setAvatarUrl(`${import.meta.env.VITE_API_URL}/public/uploads/${latestUser.avatar}?t=${Date.now()}`);
+      }
     } else {
       setAvatarUrl(null);
     }
