@@ -8,8 +8,6 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken')
 dotenv.config();
 
-const app = express();
-const PORT = 5000; 
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
@@ -18,6 +16,9 @@ cloudinary.config({
     api_key: process.env.CLOUDINARY_API_KEY,
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+const app = express();
+const PORT = 5000; 
 
 app.use(express.json()); 
 app.use(cors({
@@ -28,22 +29,24 @@ app.use(cors({
 
 app.use('/public/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-const db = mysql.createConnection({
+const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     port: process.env.DB_PORT,
-    ssl: {
-        rejectUnauthorized: false
-    }
+    ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
 });
 
-db.connect((err) => {
+db.getConnection((err, connection) => {
     if (err) {
-        console.error('Error koneksi database:', err);
+        console.error('❌ Error koneksi database:', err.message);
     } else {
-        console.log('Berhasil konek ke Database MySQL! 🐬');
+        console.log('✅ Berhasil konek ke Database MySQL (Pool)! 🐬');
+        connection.release(); // Penting: Balikin koneksi ke kolam
     }
 });
 
@@ -58,16 +61,12 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage: storage });
 
-
 app.put('/profile', (req, res) => {
-    // 1. Jalankan Multer (Upload ke Cloudinary)
     upload.single('avatar')(req, res, (err) => {
-        // Cek error upload (misal file kegedean/format salah)
         if (err) return res.status(500).json({ status: 'error', message: err.message });
 
         console.log("📥 Request Update Profile Masuk...");
         
-        // 2. Ambil data dari Body & File
         const { id, username, password } = req.body;
         // PENTING: Ambil URL Cloudinary dari 'path'
         const avatar = req.file ? req.file.path : null; 
@@ -98,7 +97,6 @@ app.put('/profile', (req, res) => {
                 return res.status(500).json({ status: 'error', message: err.message });
             }
 
-            // 6. Ambil data user terbaru buat dikirim balik ke frontend
             db.query("SELECT * FROM users WHERE id = ?", [id], (err, rows) => {
                 if (err) return res.status(500).json({ error: err.message });
                 
@@ -107,7 +105,7 @@ app.put('/profile', (req, res) => {
                 res.json({
                     status: 'success',
                     message: 'Profile berhasil diupdate!',
-                    user: rows[0] // Kirim data user yang udah ada link Cloudinary-nya
+                    user: rows[0]
                 });
             });
         });
@@ -117,6 +115,7 @@ app.put('/profile', (req, res) => {
 app.get('/', (req, res) => {
     res.send('Halo Naufal & Zihra! Backend kalian sudah jalan. 🚀');
 });
+
 
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
