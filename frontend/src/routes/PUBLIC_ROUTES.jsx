@@ -1,19 +1,21 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
 import { Login } from "../pages";
 
-const PUBLIC_ROUTES = createBrowserRouter(
-    [
-        {
-            name : 'login',
-            path : '/login', 
-            element : <Login/>
-        },
-        {
-            name : 'Not Found',
-            path : '*', 
-            element : <Navigate to='/login'/> 
-        }
-    ]
-)
+const PUBLIC_ROUTES = createBrowserRouter([
+    {
+        path: '/',
+        element: <Navigate to="/login" replace />
+    },
+    {
+        name: 'login',
+        path: '/login',
+        element: <Login />
+    },
+    {
+        name: 'Not Found',
+        path: '*',
+        element: <Navigate to="/login" replace />
+    }
+]);
 
-export default PUBLIC_ROUTES
+export default PUBLIC_ROUTES;
