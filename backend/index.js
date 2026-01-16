@@ -10,6 +10,14 @@ dotenv.config();
 
 const app = express();
 const PORT = 5000; 
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 app.use(express.json()); 
 app.use(cors({
@@ -39,64 +47,33 @@ db.connect((err) => {
     }
 });
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const dir = 'public/uploads/';
-        if (!fs.existsSync(dir)){
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'zipal-avatars',
+        allowed_formats: ['jpg', 'png', 'jpeg'],
+        transformation: [{ width: 500, height: 500, crop: 'limit' }]
     },
-    filename: (req, file, cb) => {
-        cb(null, 'avatar-' + Date.now() + path.extname(file.originalname));
-    }
 });
 
 const upload = multer({ storage: storage });
 
-app.put('/profile', upload.single('avatar'), (req, res) => {
-    console.log("📥 Request Update Profile Masuk...");
-    
-    const { id, username, password } = req.body;
-    const avatar = req.file ? req.file.filename : null;
+// Ganti blok app.put('/profile') yang lama dengan yang ini:
 
-    if (!id) {
-        return res.status(400).json({ status: 'fail', message: 'ID User tidak ditemukan!' });
-    }
+app.put('/profile', (req, res) => {
+    upload.single('avatar')(req, res, (err) => {
+        if (err) return res.status(500).json({ status: 'error', message: err.message });
 
-    let sqlUpdate = "UPDATE users SET username = ?";
-    let params = [username];
+        // ... logic validasi id, username dll SAMA SEPERTI SEBELUMNYA ...
+        const { id, username, password } = req.body;
+        
+        // PERUBAHAN PENTING DI SINI:
+        // Kalau upload ke Cloudinary, url fotonya ada di 'req.file.path'
+        // Bukan 'req.file.filename' lagi.
+        const avatar = req.file ? req.file.path : null; 
 
-    if (password && password.trim() !== "") {
-        sqlUpdate += ", password = ?";
-        params.push(password);
-    }
-
-    if (avatar) {
-        sqlUpdate += ", avatar = ?";
-        params.push(avatar);
-    }
-
-    sqlUpdate += " WHERE id = ?";
-    params.push(id);
-
-    db.query(sqlUpdate, params, (err, result) => {
-        if (err) {
-            console.error("❌ MySQL Error:", err);
-            return res.status(500).json({ status: 'error', message: err.message });
-        }
-
-        db.query("SELECT * FROM users WHERE id = ?", [id], (err, rows) => {
-            if (err) return res.status(500).json({ error: err.message });
-            
-            console.log("✅ Profile Berhasil Diupdate untuk:", rows[0].username);
-            
-            res.json({
-                status: 'success',
-                message: 'Profile berhasil diupdate!',
-                user: rows[0]
-            });
-        });
+        // ... logic UPDATE database SAMA SEPERTI SEBELUMNYA ...
+        // Simpan 'avatar' (yang isinya https://res.cloudinary...) ke database
     });
 });
 

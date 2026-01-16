@@ -26,7 +26,13 @@ const Profile = () => {
     });
 
     if (currentUser.avatar) {
-      setImageUrl(`${import.meta.env.VITE_API_URL}/public/uploads/${currentUser.avatar}?t=${Date.now()}`);
+      const isCloudinary = currentUser.avatar.startsWith('http');
+      if (isCloudinary) {
+          // Kalau dari Cloudinary, pake langsung
+          setImageUrl(currentUser.avatar);
+      } else {
+          setImageUrl(`${import.meta.env.VITE_API_URL}/public/uploads/${currentUser.avatar}`);
+      }
     }
   }, [currentUser, profileForm]);
 
@@ -43,17 +49,18 @@ const Profile = () => {
   const handleUpdateProfile = async (values) => {
     setProfileLoading(true);
     const formData = new FormData();
+    
+
     formData.append('id', currentUser.id);
     formData.append('username', values.username);
     
-    if (fileList.length > 0) {
+    // Logic ini udah bener buat Ant Design
+    if (fileList.length > 0 && fileList[0].originFileObj) {
       formData.append('avatar', fileList[0].originFileObj);
     }
 
     try {
-      const res = await api.put('/profile', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = await api.put('/profile', formData);
 
       if (res.data.status === 'success') {
         message.success('Foto & Username berhasil diupdate! 📸');
