@@ -32,8 +32,8 @@ const FormLayout = () => {
 
       const { accessToken, refreshToken, data } = response.data;
 
-      localStorage.setItem("token", accessToken);       // Access Token (Kunci masuk)
-      localStorage.setItem("refreshToken", refreshToken); // Refresh Token (Cadangan)
+      localStorage.setItem("token", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
       
       localStorage.setItem("user", JSON.stringify(data));
 

@@ -21,7 +21,6 @@ const Profile = () => {
   const [passwordForm] = Form.useForm();
 
   useEffect(() => {
-    // Set data awal hanya untuk form Profil
     profileForm.setFieldsValue({
       username: currentUser.username,
     });
@@ -69,13 +68,11 @@ const Profile = () => {
     }
   };
 
-  // --- FUNGSI 2: KHUSUS GANTI PASSWORD ---
   const handleChangePassword = async (values) => {
     setPasswordLoading(true);
     const formData = new FormData();
     formData.append('id', currentUser.id);
     
-    // Kita Tetap kirim username saat ini agar tidak tertimpa null di database
     formData.append('username', currentUser.username); 
     formData.append('password', values.newPassword);
 
@@ -87,7 +84,7 @@ const Profile = () => {
       if (res.data.status === 'success') {
         message.success('Password berhasil diganti! 🔒');
         updateLocalUser(res.data.user);
-        passwordForm.resetFields(); // Kosongkan form password setelah sukses
+        passwordForm.resetFields();
       }
     } catch (error) {
       console.error(error);
@@ -97,7 +94,6 @@ const Profile = () => {
     }
   };
 
-  // Helper untuk update localStorage & Context
   const updateLocalUser = (updatedUser) => {
     localStorage.setItem('user', JSON.stringify(updatedUser));
     setCurrentUser(updatedUser);
@@ -114,8 +110,6 @@ const Profile = () => {
 
        <div style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px' }}>
          <Row gutter={[24, 24]}>
-            
-            {/* --- GRID 1: PROFILE PICTURE & USERNAME --- */}
             <Col xs={24} md={12}>
                 <Card 
                     title={<span><EditOutlined /> Edit Identitas</span>} 
@@ -151,7 +145,6 @@ const Profile = () => {
                 </Card>
             </Col>
 
-            {/* --- GRID 2: CHANGE PASSWORD --- */}
             <Col xs={24} md={12}>
                 <Card 
                     title={<span><LockOutlined /> Keamanan Akun</span>} 

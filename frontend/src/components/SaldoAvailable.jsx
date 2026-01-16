@@ -10,7 +10,7 @@ const SaldoAvailable = ({ total }) => {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 2
-    }).format(number || 0); // Default ke 0 jika data belum ada
+    }).format(number || 0);
   };
 
   return (
@@ -43,7 +43,6 @@ const SaldoAvailable = ({ total }) => {
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         
         <span style={{ fontWeight: 'bold', fontSize: '17px' }}>
-          {/* 3. Gunakan props total disini */}
           {isVisible ? formatRupiah(total) : 'Rp **********'}
         </span>
 

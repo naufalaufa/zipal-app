@@ -1,18 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const mysql = require('mysql2');
-const multer = require('multer');
-const path = require('path');
+const mysql = require('mysql2'); 
+const multer = require('multer'); 
+const path = require('path');     
 const fs = require('fs');
-const jwt = require('jsonwebtoken'); 
-
+const jwt = require('jsonwebtoken')
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = 5000; 
 
-app.use(express.json());
+app.use(express.json()); 
 app.use(cors({
     origin: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -21,68 +20,29 @@ app.use(cors({
 
 app.use('/public/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-// ==================================================================
-// KONFIGURASI DATABASE (VERSI SIMPLE - TEMBAK SSL LANGSUNG)
-// ==================================================================
-
-const dbConfig = {
-    // HOST: Saya ketik ulang manual biar gak ada spasi nyelip
-    host: 'zipal-db-muhammadnaufalaufarifqi-bafe.c.aivencloud.com', 
-    
-    // PORT: Ini angka dari screenshot Aiven kamu (PENTING!)
-    port: 11923,
-    
-    // User & Pass tetap ambil dari Env biar aman dikit
-    user: process.env.DB_USER,      // Pastikan di Vercel isinya: avnadmin
-    password: process.env.DB_PASSWORD, // Pastikan Password Aiven benar
-    database: process.env.DB_NAME,  // Pastikan di Vercel isinya: defaultdb
-    
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
+const db = mysql.createConnection({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    port: process.env.DB_PORT,
     ssl: {
         rejectUnauthorized: false
     }
-};
+});
 
-// Tetap pakai createPool ya biar ga error "closed state" di Vercel
-const db = mysql.createPool(dbConfig);
-
-// Cek koneksi
-db.getConnection((err, connection) => {
+db.connect((err) => {
     if (err) {
-        console.error('❌ Error koneksi database:', err.message);
+        console.error('Error koneksi database:', err);
     } else {
-        console.log('✅ Berhasil konek ke Database MySQL!');
-        connection.release(); 
+        console.log('Berhasil konek ke Database MySQL! 🐬');
     }
 });
 
-
-// ==================================================================
-// MIDDLEWARE JWT
-// ==================================================================
-function authenticateToken(req, res, next) {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-
-    if (token == null) return res.status(401).json({ status: 'fail', message: 'Anda belum login (Token tidak ada)' });
-
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-        if (err) return res.status(403).json({ status: 'fail', message: 'Token tidak valid atau sudah expired' });
-        
-        req.user = user;
-        next();
-    });
-}
-
-// ==================================================================
-// KONFIGURASI UPLOAD (MULTER)
-// ==================================================================
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const dir = 'public/uploads/';
-        if (!fs.existsSync(dir)) {
+        if (!fs.existsSync(dir)){
             fs.mkdirSync(dir, { recursive: true });
         }
         cb(null, dir);
@@ -94,58 +54,15 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// ==================================================================
-// ENDPOINTS
-// ==================================================================
-
-app.get('/', (req, res) => {
-    res.send('Halo Naufal & Zihra! Backend kalian sudah jalan. 🚀');
-});
-
-// --- LOGIN ---
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-
-    const sql = "SELECT * FROM users WHERE username = ? AND password = ?";
-    db.query(sql, [username, password], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
-
-        if (result.length > 0) {
-            const user = result[0];
-
-            const userPayload = {
-                id: user.id,
-                username: user.username,
-                role: user.role
-            };
-
-            const accessToken = jwt.sign(userPayload, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '15m' });
-            const refreshToken = jwt.sign(userPayload, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '7d' });
-
-            res.json({
-                status: 'success',
-                message: 'Login Berhasil!',
-                accessToken: accessToken,
-                refreshToken: refreshToken,
-                data: {
-                    id: user.id,
-                    username: user.username,
-                    role: user.role,
-                    avatar: user.avatar
-                }
-            });
-        } else {
-            res.status(401).json({ status: 'fail', message: 'Username atau Password salah!' });
-        }
-    });
-});
-
-// --- UPDATE PROFILE ---
-app.put('/profile', authenticateToken, upload.single('avatar'), (req, res) => {
+app.put('/profile', upload.single('avatar'), (req, res) => {
+    console.log("📥 Request Update Profile Masuk...");
+    
     const { id, username, password } = req.body;
     const avatar = req.file ? req.file.filename : null;
 
-    if (!id) return res.status(400).json({ status: 'fail', message: 'ID User tidak ditemukan!' });
+    if (!id) {
+        return res.status(400).json({ status: 'fail', message: 'ID User tidak ditemukan!' });
+    }
 
     let sqlUpdate = "UPDATE users SET username = ?";
     let params = [username];
@@ -164,17 +81,78 @@ app.put('/profile', authenticateToken, upload.single('avatar'), (req, res) => {
     params.push(id);
 
     db.query(sqlUpdate, params, (err, result) => {
-        if (err) return res.status(500).json({ status: 'error', message: err.message });
+        if (err) {
+            console.error("❌ MySQL Error:", err);
+            return res.status(500).json({ status: 'error', message: err.message });
+        }
 
         db.query("SELECT * FROM users WHERE id = ?", [id], (err, rows) => {
             if (err) return res.status(500).json({ error: err.message });
-            res.json({ status: 'success', message: 'Profile berhasil diupdate!', user: rows[0] });
+            
+            console.log("✅ Profile Berhasil Diupdate untuk:", rows[0].username);
+            
+            res.json({
+                status: 'success',
+                message: 'Profile berhasil diupdate!',
+                user: rows[0]
+            });
         });
     });
 });
 
-// --- SUMMARY ---
-app.get('/summary', authenticateToken, (req, res) => {
+app.get('/', (req, res) => {
+    res.send('Halo Naufal & Zihra! Backend kalian sudah jalan. 🚀');
+});
+
+app.post('/login', (req, res) => {
+    const { username, password } = req.body;
+    const sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+
+    db.query(sql, [username, password], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+
+        if (result.length > 0) {
+            const user = result[0];
+
+            const userPayload = {
+                id: user.id,
+                username: user.username,
+                role: user.role
+            };
+
+            const accessToken = jwt.sign(userPayload, process.env.ACCESS_TOKEN_SECRET, {
+                expiresIn: '15m'
+            });
+
+            const refreshToken = jwt.sign(userPayload, process.env.REFRESH_TOKEN_SECRET, {
+                expiresIn: '7d' 
+            });
+
+            res.json({
+                status: 'success',
+                message: 'Login Berhasil!',
+                accessToken: accessToken, 
+                refreshToken: refreshToken,
+                data: {
+                    id: user.id,
+                    username: user.username,
+                    role: user.role,
+                    avatar: user.avatar
+                }
+            });
+
+        } else {
+            res.status(401).json({
+                status: 'fail',
+                message: 'Username atau Password salah!'
+            });
+        }
+    });
+});
+
+app.get('/summary', (req, res) => {
     const sql = `
         SELECT 
             username, 
@@ -214,62 +192,125 @@ app.get('/summary', authenticateToken, (req, res) => {
         res.json({
             status: 'success',
             data: {
-                total_naufal: stats.naufal.balance,
-                total_zihra: stats.zihra.balance,
-                total_deposit_naufal: stats.naufal.deposit,
+                total_naufal: stats.naufal.balance, 
+                total_zihra: stats.zihra.balance, 
+                total_deposit_naufal: stats.naufal.deposit, 
                 total_deposit_zihra: stats.zihra.deposit,
                 total_deposit_overall: totalDepositAll,
-                grand_total: sisaSaldoSetelahInvest,
+                grand_total: sisaSaldoSetelahInvest, 
                 withdraw_naufal: stats.naufal.withdraw,
                 withdraw_zihra: stats.zihra.withdraw,
-                total_investment: stats.zipaladmin.withdraw
+                total_investment: stats.zipaladmin.withdraw 
             }
         });
     });
 });
 
-// --- TRANSACTION ---
-app.post('/transaction', authenticateToken, (req, res) => {
+app.post('/transaction', (req, res) => {
     const { username, type, amount, description } = req.body;
-    const date = new Date().toISOString().slice(0, 10);
+    const date = new Date().toISOString().slice(0, 10); 
 
     const sql = "INSERT INTO transactions (username, type, amount, date, description) VALUES (?, ?, ?, ?, ?)";
-
+    
     db.query(sql, [username, type, amount, date, description], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ status: 'success', message: 'Transaksi berhasil disimpan!' });
     });
 });
 
-// --- HISTORY ---
-app.get('/history', authenticateToken, (req, res) => {
-    const sql = "SELECT * FROM transactions ORDER BY date DESC, id DESC";
+app.get('/seed-excel-data', (req, res) => {
+    db.query("TRUNCATE TABLE transactions", (err) => {
+        if (err) return res.status(500).send(err);
 
-    db.query(sql, (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ status: 'success', data: results });
+        let values = [];
+
+        for (let i = 3; i <= 12; i++) { 
+            values.push(['zihraangelina', 'deposit', 150000, `2024-${i}-01`, 'Tabungan 2024']);
+            let naufalAmount = (i === 9) ? 250000 : 150000; 
+            values.push(['naufalaufa', 'deposit', naufalAmount, `2024-${i}-01`, 'Tabungan 2024']);
+        }
+
+        for (let i = 1; i <= 12; i++) {
+            values.push(['zihraangelina', 'deposit', 150000, `2025-${i}-01`, 'Tabungan 2025']);
+            let naufalAmount = (i === 12) ? 1250000 : 350000; 
+            values.push(['naufalaufa', 'deposit', naufalAmount, `2025-${i}-01`, 'Tabungan 2025']);
+        }
+
+        for (let i = 1; i <= 10; i++) {
+            values.push(['naufalaufa', 'deposit', 1000000, `2026-${i}-01`, 'Tabungan 2026']);
+        }
+
+        const sql = "INSERT INTO transactions (username, type, amount, date, description) VALUES ?";
+        db.query(sql, [values], (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "Sukses! Data Excel sudah masuk ke Database. Total sekarang 20 Juta." });
+        });
     });
 });
 
-// --- GOALS ---
-app.get('/goals', authenticateToken, (req, res) => {
+
+app.get('/sync-excel-data', (req, res) => {
+    db.query("TRUNCATE TABLE transactions", (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+
+        let sql = "INSERT INTO transactions (username, type, amount, date, description) VALUES ?";
+        let values = [];
+
+        for (let i = 3; i <= 12; i++) {
+            values.push(['zihraangelina', 'deposit', 150000, `2024-${i}-01`, 'Tabungan 2024']);
+            let naufalAmt = (i === 9) ? 250000 : 150000;
+            values.push(['naufalaufa', 'deposit', naufalAmt, `2024-${i}-01`, 'Tabungan 2024']);
+        }
+
+        for (let i = 1; i <= 12; i++) {
+            values.push(['zihraangelina', 'deposit', 150000, `2025-${i}-01`, 'Tabungan 2025']);
+            let naufalAmt = (i === 12) ? 1250000 : 350000;
+            values.push(['naufalaufa', 'deposit', naufalAmt, `2025-${i}-01`, 'Tabungan 2025']);
+        }
+
+        for (let i = 1; i <= 10; i++) {
+            values.push(['naufalaufa', 'deposit', 1000000, `2026-${i}-01`, 'Tabungan 2026']);
+        }
+
+        db.query(sql, [values], (err, result) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json({ message: "Data Excel berhasil disinkronkan ke Database! Total sudah Rp 20.000.000 🚀" });
+        });
+    });
+});
+
+app.get('/history', (req, res) => {
+    const sql = "SELECT * FROM transactions ORDER BY date DESC, id DESC";
+
+    db.query(sql, (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        res.json({
+            status: 'success',
+            data: results
+        });
+    });
+});
+
+app.get('/goals', (req, res) => {
     db.query("SELECT * FROM financial_goals ORDER BY id ASC", (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ status: 'success', data: results });
     });
 });
 
-app.post('/goals', authenticateToken, (req, res) => {
+app.post('/goals', (req, res) => {
     const { title, target_amount, collected_amount, description } = req.body;
     const sql = "INSERT INTO financial_goals (title, target_amount, collected_amount, description) VALUES (?, ?, ?, ?)";
-
+    
     db.query(sql, [title, target_amount, collected_amount || 0, description], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ status: 'success', message: 'Tujuan baru berhasil dibuat!' });
     });
 });
 
-app.put('/goals/:id', authenticateToken, (req, res) => {
+app.put('/goals/:id', (req, res) => {
     const { id } = req.params;
     const { title, target_amount, collected_amount, description } = req.body;
     const sql = "UPDATE financial_goals SET title=?, target_amount=?, collected_amount=?, description=? WHERE id=?";
@@ -280,7 +321,7 @@ app.put('/goals/:id', authenticateToken, (req, res) => {
     });
 });
 
-app.delete('/goals/:id', authenticateToken, (req, res) => {
+app.delete('/goals/:id', (req, res) => {
     const { id } = req.params;
     db.query("DELETE FROM financial_goals WHERE id = ?", [id], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -288,21 +329,17 @@ app.delete('/goals/:id', authenticateToken, (req, res) => {
     });
 });
 
-// --- INVESTMENTS ---
-app.get('/investments', authenticateToken, (req, res) => {
+
+app.get('/investments', (req, res) => {
     const sql = "SELECT * FROM transactions WHERE username = 'zipaladmin' AND type = 'withdraw' ORDER BY date DESC";
+
     db.query(sql, (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ status: 'success', data: results });
     });
 });
 
-// --- SYNC (Versi Simple) ---
-app.get('/sync-excel-data', (req, res) => {
-    res.json({message: "Fitur sync sementara dinonaktifkan di kode full version ini agar rapi."});
-});
-
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0' , () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
 

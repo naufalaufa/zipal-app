@@ -45,10 +45,8 @@ const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [currentUser, setCurrentUser] = useState(JSON.parse(localStorage.getItem('user')) || { username: 'Guest' });
   const [avatarUrl, setAvatarUrl] = useState(null);
-
   const [cashAvailable, setCashAvailable] = useState(0);
   const [showBalance, setShowBalance] = useState(false); 
-  
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
@@ -90,19 +88,16 @@ const DashboardLayout = () => {
     fetchSaldoNavbar();
   }, [updateUserData, fetchSaldoNavbar]);
 
-  // --- LOGOUT DENGAN FOTO PROFILE (UPDATED) ---
   const LogoutAccount = () => {
     Swal.fire({
       title: 'Do you want to logout?',
       text: currentUser.username,
       
-      // Setting Gambar
       imageUrl: avatarUrl, 
-      imageWidth: 160,   // Ukuran Lebih Besar
-      imageHeight: 160,  // Ukuran Lebih Besar
+      imageWidth: 160,
+      imageHeight: 160,
       imageAlt: 'User Avatar',
       
-      // Icon fallback jika tidak ada foto
       icon: !avatarUrl ? 'warning' : undefined, 
       
       showCancelButton: true,
@@ -111,17 +106,15 @@ const DashboardLayout = () => {
       confirmButtonText: "Yes, Logout",
       cancelButtonText: "Cancel",
 
-      // --- SUNTIK CSS SUPAYA BULAT & TIDAK PEYANG ---
       didOpen: () => {
         const image = Swal.getImage();
         if (image) {
-            image.style.borderRadius = '50%'; // Bikin Bulat
-            image.style.objectFit = 'cover';  // Bikin Proporsional (Gak Peyang)
-            image.style.border = '4px solid #eee'; // Pemanis Border
-            image.style.boxShadow = '0 4px 10px rgba(0,0,0,0.1)'; // Pemanis Bayangan
+            image.style.borderRadius = '50%';
+            image.style.objectFit = 'cover';
+            image.style.border = '4px solid #eee';
+            image.style.boxShadow = '0 4px 10px rgba(0,0,0,0.1)';
         }
       }
-      // ----------------------------------------------
 
     }).then((result) => {
       if (result.isConfirmed) {
@@ -131,7 +124,6 @@ const DashboardLayout = () => {
       }
     });
   }
-  // ----------------------------------
 
   const refreshAllData = () => {
       updateUserData();
@@ -222,7 +214,6 @@ const DashboardLayout = () => {
         <Footer style={{ textAlign: 'center', flexShrink: 0 }}>Zihra Naufal (Zipal)</Footer>
       </Layout>
 
-      {/* --- MODAL PROFILE POPUP --- */}
       <Modal 
         title={null} 
         open={isProfileModalOpen} 

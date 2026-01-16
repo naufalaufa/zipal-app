@@ -31,7 +31,6 @@ const SaldoAllWithDraw = ({ total }) => {
           title="Total akumulasi uang yang sudah ditarik (Withdraw) dari sistem."
           placement="top"
         >
-          {/* Menggunakan Icon Panah Bawah dengan warna Merah */}
           <Avatar 
             size="small" 
             style={{ backgroundColor: '#cf1322', cursor: 'pointer' }} 

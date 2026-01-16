@@ -61,7 +61,6 @@ const Agreement = () => {
 
       <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px 40px 20px' }}>
         
-        {/* INFO ALERT */}
         <Alert
           message="Dokumen Resmi Internal"
           description="Harap baca setiap pasal dengan teliti. Kesepakatan ini mengikat kedua belah pihak demi kenyamanan finansial bersama."
@@ -110,7 +109,6 @@ const Agreement = () => {
                 </Card>
               ))}
 
-              {/* Tanda Tangan */}
               <Divider style={{ margin: '40px 0' }}>TANDA TANGAN DIGITAL</Divider>
               
               <div style={{ display: 'flex', justifyContent: 'space-between', textAlign: 'center', padding: '0 40px' }}>

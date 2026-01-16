@@ -290,7 +290,6 @@ const Purpose = () => {
                         event.preventDefault();
                     }
                   }}
-                  // ----------------------------------------
               />
            </Form.Item>
 
@@ -302,7 +301,6 @@ const Purpose = () => {
           </Form.Item>
         </Form>
       </Modal>
-
     </div>
    </div>
   );

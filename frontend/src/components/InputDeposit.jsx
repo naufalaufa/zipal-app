@@ -46,7 +46,6 @@ const InputDeposit = ({ username, onSuccess, closeModal }) => {
                             event.preventDefault();
                         }
                     }}
-                    // -----------------------------------
                 />
             </Form.Item>
             
