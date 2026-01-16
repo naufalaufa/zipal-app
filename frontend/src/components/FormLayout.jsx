@@ -1,26 +1,27 @@
 import { useState } from "react";
 import { Badge, Button, Checkbox, Form, Input, message } from "antd";
 import ReCAPTCHA from "react-google-recaptcha";
+import { useNavigate } from "react-router-dom";
 import api from "../api";
+import ForgotPassword from "./ForgotPassword";
 
 const FormLayout = () => {
   const [loading, setLoading] = useState(false);
   const [captchaVal, setCaptchaVal] = useState(null);
-  const [isRemember , setIsRemember] = useState(null)
-  
-  const onChange = e => {
-    if(e.target.checked === false) {
-       console.log('hehehehe false')
-       setIsRemember(false)
-    } else {
-       console.log('hehehehe true')
-       setIsRemember(true)
-    }
-    console.log(`checked = ${e.target.checked}`);
+  const [isRemember, setIsRemember] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const navigate = useNavigate();
+
+  const onChange = (e) => {
+    setIsRemember(e.target.checked);
   };
 
-
   const onFinish = async (values) => {
+    if (!captchaVal) {
+      message.error("Silakan verifikasi Captcha terlebih dahulu!");
+      return; 
+    }
 
     setLoading(true);
 
@@ -34,13 +35,12 @@ const FormLayout = () => {
 
       localStorage.setItem("token", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
-      
       localStorage.setItem("user", JSON.stringify(data));
 
       message.success("Login Berhasil! Selamat datang " + data.username);
-      
+
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        navigate("/dashboard"); 
       }, 1000);
 
     } catch (error) {
@@ -54,20 +54,18 @@ const FormLayout = () => {
     }
   };
 
-
   const handleCaptchaChange = (value) => {
-    setCaptchaVal(value); 
+    setCaptchaVal(value);
   };
 
   return (
-    <>
     <div>
-    <Badge.Ribbon text="Zipal 🧑‍🦱👧"></Badge.Ribbon>
-    <Form
+      <Badge.Ribbon text="Zipal 🧑‍🦱👧" />
+      <Form
         layout="vertical"
         className="login-form"
         requiredMark={false}
-        onFinish={onFinish} 
+        onFinish={onFinish}
       >
         <Form.Item
           label="Username"
@@ -86,7 +84,9 @@ const FormLayout = () => {
         </Form.Item>
 
         <Form.Item name="remember" valuePropName="checked">
-          <Checkbox onChange={onChange} className="text-white">Remember me</Checkbox>
+          <Checkbox onChange={onChange} className="text-white">
+            Remember me
+          </Checkbox>
         </Form.Item>
 
         <Form.Item>
@@ -95,7 +95,7 @@ const FormLayout = () => {
             className="captcha-container"
             onChange={handleCaptchaChange}
           />
-          
+
           <Button
             type="primary"
             htmlType="submit"
@@ -103,12 +103,31 @@ const FormLayout = () => {
             style={{ marginTop: "15px" }}
             loading={loading}
           >
-             Submit
+            Submit
           </Button>
         </Form.Item>
+        
+        <Form.Item>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <Button 
+              type="link" 
+              onClick={() => setIsModalOpen(true)}
+              style={{ 
+                color: "white",
+                textDecoration: "underline"
+              }}
+            >
+              Forgot Password?
+            </Button>
+          </div>
+        </Form.Item>
       </Form>
+      <ForgotPassword
+        open={isModalOpen} 
+        onCancel={() => setIsModalOpen(false)} 
+      />
+      
     </div>
-    </>
   );
 };
 
