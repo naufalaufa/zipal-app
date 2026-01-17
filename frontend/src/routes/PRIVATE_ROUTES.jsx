@@ -1,5 +1,5 @@
 import { createBrowserRouter} from "react-router-dom";
-import {  Agreement, Dashboard, History, Investment, Profile, Purpose } from "../pages";
+import {  Agreement, Dashboard, History, Investment, LogActivities, Profile, Purpose } from "../pages";
 import { UserLayout } from "../components";
 import NotFound from "../pages/NotFound";
 
@@ -33,6 +33,10 @@ const PRIVATE_ROUTES = createBrowserRouter(
                 {
                     path : 'agreement' ,
                     element : <Agreement/>
+                },
+                {
+                    path : 'logactivities' ,
+                    element : <LogActivities/>
                 },
             ]
         },

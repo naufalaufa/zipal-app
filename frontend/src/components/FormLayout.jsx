@@ -34,7 +34,7 @@ const FormLayout = () => {
 
       const { accessToken, refreshToken, data } = response.data;
 
-      localStorage.setItem("token", accessToken);
+      localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", refreshToken);
       localStorage.setItem("user", JSON.stringify(data));
 
