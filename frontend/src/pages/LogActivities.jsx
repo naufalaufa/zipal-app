@@ -1,19 +1,22 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Card, Table, Tag, Tooltip, Button, Avatar, Input, Space } from 'antd';
+import { Card, Table, Tag, Tooltip, Button, Avatar, Input, Space, Grid } from 'antd'; // Tambah Grid
 import { 
     SafetyCertificateOutlined, 
     ReloadOutlined, 
     UserOutlined, 
     ClockCircleOutlined,
-    LogoutOutlined,
     SearchOutlined
 } from '@ant-design/icons';
 import { HeadNavbar } from '../components'; 
 import Swal from 'sweetalert2';
 import moment from 'moment'; 
 
+const { useBreakpoint } = Grid;
+
 const LogActivities = () => {
+    const screens = useBreakpoint();
+
     const user = JSON.parse(localStorage.getItem('user')) || { role: 'guest' };
     const isAdmin = user.role === 'admin';
     const token = localStorage.getItem('accessToken');
@@ -31,8 +34,6 @@ const LogActivities = () => {
                 confirmButtonColor: '#d33',
                 allowOutsideClick: false
             });
-            // Opsional: Redirect paksa jika user bandel akses via URL
-            // window.location.href = '/dashboard';
         } else {
             if (!token) {
                 Swal.fire('Error', 'Token hilang, login ulang.', 'error');
@@ -47,11 +48,10 @@ const LogActivities = () => {
 
         setLoading(true);
         try {
-            const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/activity-logs`, { // Pakai Env variable biar aman
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/admin/activity-logs`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             
-            // Map data dan tambahkan key
             const dataWithKey = response.data.data.map((item, index) => ({
                 ...item,
                 key: item.id || index
@@ -77,11 +77,10 @@ const LogActivities = () => {
         }
     };
 
-    // Helper untuk URL Avatar
     const getAvatarSrc = (filename) => {
         if (!filename) return null;
-        if (filename.startsWith('http')) return filename; // Cloudinary
-        return `${import.meta.env.VITE_API_URL}/public/uploads/${filename}`; // Local Uploads
+        if (filename.startsWith('http')) return filename;
+        return `${import.meta.env.VITE_API_URL}/public/uploads/${filename}`;
     };
 
     const columns = [
@@ -89,6 +88,7 @@ const LogActivities = () => {
             title: 'No',
             key: 'index',
             width: 60,
+            fixed: screens.md ? 'left' : false,
             align: 'center',
             render: (text, record, index) => <b>{index + 1}</b>,
         },
@@ -96,8 +96,7 @@ const LogActivities = () => {
             title: 'User Login',
             dataIndex: 'username',
             key: 'username',
-            width: 250,
-            // 🔥 FITUR FILTER SEARCH USERNAME
+            width: 200,
             filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
                 <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
                     <Input
@@ -119,36 +118,33 @@ const LogActivities = () => {
             ),
             filterIcon: (filtered) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
             onFilter: (value, record) => record.username.toLowerCase().includes(value.toLowerCase()),
-            
-            // 🔥 TAMPILAN AVATAR + USERNAME
             render: (text, record) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <Avatar 
                         src={getAvatarSrc(record.avatar)} 
                         icon={<UserOutlined />} 
-                        style={{ backgroundColor: record.role === 'admin' ? '#fde3cf' : '#87d068', verticalAlign: 'middle' }}
+                        style={{ backgroundColor: record.role === 'admin' ? '#fde3cf' : '#87d068', flexShrink: 0 }}
                     />
-                    <div>
-                        <div style={{ fontWeight: '600', fontSize: '14px' }}>{text}</div>
+                    <div style={{ overflow: 'hidden' }}>
+                        <div style={{ fontWeight: '600', fontSize: '14px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{text}</div>
                         <div style={{ fontSize: '11px', color: '#888' }}>ID: {record.user_id}</div>
                     </div>
                 </div>
             ),
         },
         {
-            title: 'Role Access',
+            title: 'Role',
             dataIndex: 'role',
             key: 'role',
             align: 'center',
-            width: 150,
-            // 🔥 FITUR FILTER ROLE
+            width: 100,
             filters: [
                 { text: 'Admin', value: 'admin' },
                 { text: 'User', value: 'user' },
             ],
             onFilter: (value, record) => record.role === value,
             render: (role) => (
-                <Tag color={role === 'admin' ? 'red' : 'green'} style={{ fontWeight: 'bold', padding: '4px 12px', borderRadius: '20px' }}>
+                <Tag color={role === 'admin' ? 'red' : 'green'} style={{ fontWeight: 'bold', borderRadius: '20px' }}>
                     {role ? role.toUpperCase() : '-'}
                 </Tag>
             ),
@@ -157,16 +153,15 @@ const LogActivities = () => {
             title: 'Waktu Login',
             dataIndex: 'login_at',
             key: 'login_at',
-            width: 250,
-            // 🔥 FITUR SORTING TANGGAL (ASC/DESC)
+            width: 220,
             sorter: (a, b) => moment(a.login_at).unix() - moment(b.login_at).unix(),
-            defaultSortOrder: 'descend', // Default yang terbaru diatas
+            defaultSortOrder: 'descend',
             render: (date) => (
-                <div style={{ color: '#555' }}>
-                    <ClockCircleOutlined style={{ marginRight: '8px', color: '#faad14' }} />
-                    {moment(date).format('DD MMMM YYYY')} 
-                    <span style={{ marginLeft: '8px', color: '#ccc' }}>|</span>
-                    <strong style={{ marginLeft: '8px', color: '#333' }}>{moment(date).format('HH:mm')} WIB</strong>
+                <div style={{ color: '#555', fontSize: '13px' }}>
+                    <ClockCircleOutlined style={{ marginRight: '6px', color: '#faad14' }} />
+                    {moment(date).format('DD MMM YYYY')} 
+                    <span style={{ margin: '0 6px', color: '#ccc' }}>|</span>
+                    <strong style={{ color: '#333' }}>{moment(date).format('HH:mm')}</strong>
                 </div>
             ),
         },
@@ -175,28 +170,40 @@ const LogActivities = () => {
     return (
         <div>
             <HeadNavbar
-                title="Zipal Log Activities"
+                title="Zipal Logs Activities"
                 icon={<SafetyCertificateOutlined />}
-                description="Monitoring & Audit Siapa Saja yang Mengakses Sistem"
+                description="Audit Sistem"
             />
 
-            <div style={{ padding: '0 20px 40px 20px' }}>
+            {/* Container Padding Responsif */}
+            <div style={{ 
+                padding: screens.md ? '0 20px 40px 20px' : '0 10px 20px 10px',
+                marginTop: screens.md ? '0' : '10px' 
+            }}>
                 
                 {isAdmin && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <div style={{ color: '#666' }}>
-                           Total Logs: <b>{logs.length}</b> record
+                    <div style={{ 
+                        display: 'flex', 
+                        // Flex direction column di HP, Row di Tablet+
+                        flexDirection: screens.md ? 'row' : 'column', 
+                        justifyContent: 'space-between', 
+                        alignItems: screens.md ? 'center' : 'flex-start', 
+                        marginBottom: '20px',
+                        gap: '10px' // Jarak antar elemen saat stack
+                    }}>
+                        <div style={{ color: '#666', fontSize: screens.md ? '14px' : '13px' }}>
+                            Total Logs: <b>{logs.length}</b> record
                         </div>
-                        <div style={{ display: 'flex', gap: '10px' }}>
+                        <div style={{ display: 'flex', gap: '10px', width: screens.md ? 'auto' : '100%' }}>
                             <Tooltip title="Muat ulang data log">
                                 <Button 
                                     type="primary" 
                                     icon={<ReloadOutlined />} 
                                     onClick={fetchLogs} 
                                     loading={loading}
-                                    style={{ borderRadius: '6px' }}
+                                    style={{ borderRadius: '6px', width: screens.md ? 'auto' : '100%' }} // Full width button di HP
                                 >
-                                    Refresh
+                                    Refresh Data
                                 </Button>
                             </Tooltip>
                         </div>
@@ -205,7 +212,7 @@ const LogActivities = () => {
 
                 <Card 
                     variant="borderless" 
-                    style={{ borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}
+                    style={{ borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', overflow: 'hidden' }}
                     bodyStyle={{ padding: '0' }}
                 >
                     {isAdmin ? (
@@ -214,16 +221,19 @@ const LogActivities = () => {
                             dataSource={logs}
                             pagination={{ 
                                 pageSize: 8, 
-                                showTotal: (total, range) => `${range[0]}-${range[1]} dari ${total} logs`,
+                                showTotal: (total, range) => screens.md ? `${range[0]}-${range[1]} dari ${total} logs` : `${total} Logs`, // Sederhanakan pagination text di HP
+                                size: screens.md ? 'default' : 'small'
                             }}
                             loading={loading}
+                            // FITUR UTAMA RESPONSIVE: Scroll X
+                            scroll={{ x: 800 }} 
                             rowClassName={(record) => record.role === 'admin' ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50'}
                         />
                     ) : (
-                        <div style={{ textAlign: 'center', padding: '60px', color: '#ff4d4f' }}>
-                            <SafetyCertificateOutlined style={{ fontSize: '60px', marginBottom: '20px', opacity: 0.5 }} />
-                            <h2>Akses Terbatas</h2>
-                            <p>Hanya Administrator yang memiliki izin untuk melihat halaman ini.</p>
+                        <div style={{ textAlign: 'center', padding: '40px 20px', color: '#ff4d4f' }}>
+                            <SafetyCertificateOutlined style={{ fontSize: '40px', marginBottom: '20px', opacity: 0.5 }} />
+                            <h3>Akses Terbatas</h3>
+                            <p style={{ fontSize: '12px' }}>Hanya Administrator yang memiliki izin.</p>
                         </div>
                     )}
                 </Card>
