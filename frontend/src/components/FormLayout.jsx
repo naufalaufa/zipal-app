@@ -24,6 +24,10 @@ const FormLayout = () => {
       return; 
     }
 
+    if(isRemember === false) {
+      message.error('Tolong lakukan aksi check sebelum login')
+    }
+
     setLoading(true);
 
     try {
