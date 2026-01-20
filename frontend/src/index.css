@@ -31,15 +31,6 @@ body {
   grid-template-columns: 1fr 2fr;
 }
 
-.login-form {
-  background-color: var(--primary-color);
-  padding: 40px;
-  border-radius: 20px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-}
-
 .sidetext-layout-container {
   background: linear-gradient(10deg, var(--secondary-color), var(--primary-color));  color: white;
   height: 100vh;
@@ -69,7 +60,6 @@ body {
   padding: 8px 12px;
 }
 
-/* mobile devices */
 
 @media (max-width: 768px) {
   .login-layout {
@@ -83,6 +73,28 @@ body {
   .login-form {
     width: 100%; 
     padding: 30px 20px;
+  }
+}
+
+.login-form {
+  background-color: var(--primary-color);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+@media (min-width: 1024px) {
+  .login-form {
+    max-width: 360px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .login-form {
+    max-width: 420px;
   }
 }
 
