@@ -69,6 +69,13 @@ body {
   padding: 8px 12px;
 }
 
+.ant-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
 /* mobile devices */
 
 @media (max-width: 768px) {
@@ -102,5 +109,29 @@ body {
 
   .sidetext-layout-container {
     display: none;
+  }
+}
+
+/* Styling khusus untuk tombol agar konsisten */
+
+
+/* Laptop & Tablet Breakpoint */
+@media (max-width: 1366px) {
+  .ant-btn {
+    padding: 2px 8px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Singkatkan teks jika di layar kecil agar tidak turun */
+  .btn-text-long {
+    display: none; /* Sembunyikan teks panjang, ganti ikon saja atau teks singkat */
+  }
+}
+
+/* Monitor Besar */
+@media (min-width: 1440px) {
+  .ant-btn {
+    padding: 8px 16px !important;
+    font-size: 14px !important;
   }
 }

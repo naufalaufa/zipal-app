@@ -121,10 +121,13 @@ app.post('/login', (req, res) => {
 
 app.post('/auth/check-username', (req, res) => {
     const { username } = req.body;
-    db.query("SELECT id, username FROM users WHERE username = ?", [username], (err, result) => {
+    db.query("SELECT id, username, avatar FROM users WHERE username = ?", [username], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
-        if (result.length > 0) res.json({ status: 'success', message: 'Username ditemukan', user: result[0] });
-        else res.status(404).json({ status: 'fail', message: 'Username tidak terdaftar!' });
+        if (result.length > 0) {
+            res.json({ status: 'success', message: 'Username ditemukan', user: result[0] });
+        } else {
+            res.status(404).json({ status: 'fail', message: 'Username tidak terdaftar!' });
+        }
     });
 });
 
@@ -277,6 +280,44 @@ app.post('/transaction', (req, res) => {
     db.query(sql, [username, type, amount, date, description], (err) => {
         if (err) return res.status(500).json({ error: err.message });
         res.json({ status: 'success', message: 'Transaksi berhasil disimpan!' });
+    });
+});
+
+app.delete('/transaction/cancel-last/:username', (req, res) => {
+    const { username } = req.params;
+
+    const findLastId = "SELECT id FROM transactions WHERE username = ? AND type = 'deposit' ORDER BY id DESC LIMIT 1";
+
+    db.query(findLastId, [username], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (result.length === 0) return res.status(404).json({ status: 'fail', message: 'Tidak ada deposit ditemukan!' });
+
+        const lastId = result[0].id;
+
+        db.query("DELETE FROM transactions WHERE id = ?", [lastId], (deleteErr) => {
+            if (deleteErr) return res.status(500).json({ error: deleteErr.message });
+            res.json({ status: 'success', message: 'Deposit terakhir berhasil dibatalkan!' });
+        });
+    });
+});
+
+app.get('/transaction/last/:username', (req, res) => {
+    const { username } = req.params;
+    const sql = "SELECT * FROM transactions WHERE username = ? AND type = 'deposit' ORDER BY id DESC LIMIT 1";
+    db.query(sql, [username], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (result.length > 0) res.json({ status: 'success', data: result[0] });
+        else res.status(404).json({ message: "Belum ada deposit." });
+    });
+});
+
+app.put('/transaction/:id', (req, res) => {
+    const { id } = req.params;
+    const { amount, description } = req.body;
+    const sql = "UPDATE transactions SET amount = ?, description = ? WHERE id = ?";
+    db.query(sql, [amount, description, id], (err) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ status: 'success', message: "Data berhasil diperbarui!" });
     });
 });
 
