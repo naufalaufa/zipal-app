@@ -8,7 +8,6 @@ import api from '../api';
 const { Header, Content, Footer, Sider } = Layout;
 const { Title, Text } = Typography;
 
-// 1. Daftar Menu Tetap Disini
 const menuItems = [
   { 
     key: '/dashboard', 
@@ -49,7 +48,6 @@ const menuItems = [
 
 const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
-  // Default role 'guest' biar aman kalau localStorage kosong
   const [currentUser, setCurrentUser] = useState(JSON.parse(localStorage.getItem('user')) || { username: 'Guest', role: 'guest' });
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [cashAvailable, setCashAvailable] = useState(0);
@@ -60,8 +58,6 @@ const DashboardLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ... (Fungsi updateUserData, fetchSaldoNavbar, formatRupiah, LogoutAccount TETAP SAMA, tidak perlu diubah) ...
-  // ... Paste fungsi-fungsi yang tadi disini ...
   const updateUserData = useCallback(() => {
     const latestUser = JSON.parse(localStorage.getItem('user')) || { username: 'Guest' };
     setCurrentUser(latestUser);
@@ -103,7 +99,6 @@ const DashboardLayout = () => {
   }, [updateUserData, fetchSaldoNavbar]);
 
   const LogoutAccount = () => {
-    // ... Kode Logout SAMA SEPERTI SEBELUMNYA ...
      Swal.fire({
       title: 'Do you want to logout?',
       text: currentUser.username,
@@ -145,14 +140,10 @@ const DashboardLayout = () => {
   const handleProfileModalCancel = () => { setIsProfileModalOpen(false); };
 
 
-  // 🔥 INI BAGIAN PENTINGNYA (FILTER MENU) 🔥
-  // Kita buat variabel baru 'filteredMenu'
   const filteredMenu = menuItems.filter(item => {
-    // Kalau menu-nya 'LogActivities', cek apakah user adalah admin
     if (item.key === '/dashboard/logactivities') {
         return currentUser.role === 'admin'; // Hanya true jika admin
     }
-    // Menu lain tampilkan saja
     return true;
   });
 
@@ -164,7 +155,6 @@ const DashboardLayout = () => {
           <p>Zipal Application 📱</p>
         </div>
         
-        {/* 🔥 GUNAKAN filteredMenu DISINI 🔥 */}
         <Menu 
             theme="dark" 
             mode="inline" 
@@ -181,8 +171,6 @@ const DashboardLayout = () => {
       </Sider>
 
       <Layout style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
-        {/* ... (HEADER, CONTENT, FOOTER, MODAL TETAP SAMA SEPERTI KODEMU) ... */}
-        {/* Copy paste aja bagian bawah ini dari kode kamu sebelumnya, gak ada perubahan */}
         <Header style={{ color: 'white', padding: '0 24px', background: '#001529', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
              <div style={{  padding: '5px 8px', borderRadius: '6px' }}>
@@ -217,7 +205,14 @@ const DashboardLayout = () => {
         <Footer style={{ textAlign: 'center', flexShrink: 0 }}>Zihra Naufal (Zipal)</Footer>
       </Layout>
 
-      <Modal title={null} open={isProfileModalOpen} onOk={handleProfileModalOk} onCancel={handleProfileModalCancel} footer={[ <Button key="edit" type="primary" onClick={() => { setIsProfileModalOpen(false); navigate('/dashboard/profile'); }}> Edit Profile </Button>, <Button key="close" onClick={handleProfileModalCancel}> Tutup </Button> ]} centered width={400} >
+      <Modal
+         title={null}
+         open={isProfileModalOpen} 
+         onOk={handleProfileModalOk}
+         onCancel={handleProfileModalCancel}
+         footer={[ <Button key="edit" type="primary" onClick={() => { setIsProfileModalOpen(false); navigate('/dashboard/profile'); }}>Edit Profile </Button>, <Button key="close"
+         onClick={handleProfileModalCancel}> Tutup </Button>]}
+         centered width={400}>
          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '20px 0' }}>
             <div style={{ position: 'relative', marginBottom: '20px' }}>
                 <Avatar size={200} src={avatarUrl} icon={!avatarUrl && <UserOutlined />} style={{ backgroundColor: '#e6f7ff', border: '5px solid #1890ff', color: '#1890ff' }} />
@@ -233,8 +228,12 @@ const DashboardLayout = () => {
             </div>
             <Divider style={{ margin: '20px 0' }} />
             <Descriptions column={1} size="middle" style={{ width: '100%' }} contentStyle={{ fontWeight: 'bold' }}>
-                <Descriptions.Item label="User ID"> <Text copyable style={{ fontSize: '15px' }}>{currentUser.id}</Text> </Descriptions.Item>
-                <Descriptions.Item label="Status"> <span style={{ color: '#52c41a', fontSize: '15px' }}>● Active Account</span> </Descriptions.Item>
+                <Descriptions.Item label="User ID">
+                    <Text copyable style={{ fontSize: '15px' }}>{currentUser.id}</Text>
+                  </Descriptions.Item>
+                <Descriptions.Item label="Status"> 
+                    <Text style={{ color: '#52c41a', fontSize: '15px' }}>● Active Account</Text>
+                  </Descriptions.Item>
             </Descriptions>
          </div>
       </Modal>
