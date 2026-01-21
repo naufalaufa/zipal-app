@@ -1,8 +1,31 @@
 import { useEffect, useState, useCallback } from "react";
 import { useOutletContext } from "react-router-dom"; 
-import { Card, Col, Row, Divider, Modal, Grid, Tooltip, Typography, Avatar } from "antd"; 
-import { DepositModal, WithdrawModal, ChartDeposit, ChartWithdraw, ChartInvestment, HeadNavbar, SaldoAvailable, SaldoInvestmentWithdraw, SaldoTotalIn, SaldoAllWithDraw, StatisticWithHide, CancelOrEditDepositModal} from "../components";
-import { LineChartOutlined, FundViewOutlined, DashboardOutlined, RiseOutlined, LockOutlined, UserOutlined, InfoCircleOutlined, EyeOutlined, EyeInvisibleOutlined } from "@ant-design/icons";
+import { Card, Col, Row, Divider, Modal, Grid, Tooltip, Typography, Avatar, Button } from "antd"; 
+import { 
+  DepositModal, 
+  WithdrawModal, 
+  ChartDeposit, 
+  ChartWithdraw, 
+  ChartInvestment, 
+  HeadNavbar, 
+  SaldoAvailable, 
+  SaldoInvestmentWithdraw, 
+  SaldoTotalIn, 
+  SaldoAllWithDraw, 
+  StatisticWithHide, 
+  CancelOrEditDepositModal 
+} from "../components";
+import { 
+  LineChartOutlined, 
+  FundViewOutlined, 
+  DashboardOutlined, 
+  RiseOutlined, 
+  LockOutlined, 
+  UserOutlined, 
+  InfoCircleOutlined, 
+  EyeOutlined, 
+  EyeInvisibleOutlined 
+} from "@ant-design/icons";
 import api from "../api";
 
 const { useBreakpoint } = Grid; 
@@ -14,6 +37,7 @@ const formatRupiahSimple = (number) => {
   }).format(number || 0);
 };
 
+// --- KOMPONEN INTERNAL: BalanceTitle ---
 const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, grandTotal, screens, colorHighlight }) => {
   const [isVisible, setIsVisible] = useState(false); 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false); 
@@ -49,27 +73,20 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
         </div>
       )}
 
-        <Modal 
-          open={isPreviewOpen} 
-          footer={null} 
-          onCancel={() => setIsPreviewOpen(false)} 
-          centered 
-          width={350}
-          styles={{ body: { padding: 0, overflow: 'hidden', borderRadius: '10px' } }}
-        >
+      <Modal 
+        open={isPreviewOpen} 
+        footer={null} 
+        onCancel={() => setIsPreviewOpen(false)} 
+        centered 
+        width={350}
+        styles={{ body: { padding: 0, overflow: 'hidden', borderRadius: '10px' } }}
+      >
         <Avatar 
           shape="square"
           src={avatarUrl} 
           size={350}
-          style={{ 
-            width: '100%', 
-            height: 'auto', 
-            aspectRatio: '1/1',
-            display: 'block'
-          }} 
-          imgProps={{ 
-            style: { objectFit: 'cover' } 
-          }}
+          style={{ width: '100%', height: 'auto', aspectRatio: '1/1', display: 'block' }} 
+          imgProps={{ style: { objectFit: 'cover' } }}
         />
         <div style={{ padding: '15px', textAlign: 'center' }}>
             <Title level={4} style={{ margin: 0 }}>{name}</Title>
@@ -80,6 +97,7 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
   );
 };
 
+// --- KOMPONEN UTAMA: Dashboard ---
 const Dashboard = () => {
   const users = JSON.parse(localStorage.getItem('user')) || { role: 'guest' };
   const screens = useBreakpoint(); 
@@ -97,8 +115,7 @@ const Dashboard = () => {
     try {
       const res = await api.get('/summary');
       if (res.data.status === 'success') setDataSaldo(res.data.data);
-    } 
-    catch (error) { console.error("Gagal load summary", error); }
+    } catch (error) { console.error("Gagal load summary", error); }
   };
 
   const getAvatarUrl = (avatar) => {
@@ -115,9 +132,7 @@ const Dashboard = () => {
         naufalaufa: getAvatarUrl(resNaufal.data.user?.avatar),
         zihraangelina: getAvatarUrl(resZihra.data.user?.avatar)
       });
-    } catch (error) { 
-      console.error("Gagal load avatar real-time", error); 
-    }
+    } catch (error) { console.error("Gagal load avatar real-time", error); }
   }, []);
 
   const handleTransactionSuccess = () => { fetchSaldo(); refreshHeader(); };
@@ -131,50 +146,54 @@ const Dashboard = () => {
     <div style={{ paddingBottom: '40px' }}>
       <HeadNavbar title="Zipal Dashboard" icon={<DashboardOutlined/>} description="Statistik Keuangan Real-Time Naufal & Zihra" />
 
+      {/* SECTION 1: Ringkasan Saldo */}
       <div style={{ marginBottom: '40px' }}>
         <Row justify="center" gutter={[24, 24]}>
-          <Col xs={24} md={8}>
-            <Card style={{ ...elegantCardStyle, height: '130px', justifyContent: 'center', alignItems: 'center' }}>
-                <SaldoTotalIn total={dataSaldo.total_deposit_overall} />
-              </Card>
-            </Col>
-            <Col xs={24} md={8}>
-                <Card style={{ ...elegantCardStyle, height: '130px', justifyContent: 'center', alignItems: 'center' }}>
-                  <SaldoAllWithDraw total={totalWithdrawCalculated} />
-                </Card>
-            </Col>
-              <Col xs={24} md={8}>
-                <Card style={{ ...elegantCardStyle, height: '130px', justifyContent: 'center', alignItems: 'center' }}>
-                  <SaldoAvailable total={dataSaldo.grand_total} />
-              </Card>
-            </Col>
+          <Col xs={24} md={8}><Card style={{ ...elegantCardStyle, height: '130px', justifyContent: 'center', alignItems: 'center' }}><SaldoTotalIn total={dataSaldo.total_deposit_overall} /></Card></Col>
+          <Col xs={24} md={8}><Card style={{ ...elegantCardStyle, height: '130px', justifyContent: 'center', alignItems: 'center' }}><SaldoAllWithDraw total={totalWithdrawCalculated} /></Card></Col>
+          <Col xs={24} md={8}><Card style={{ ...elegantCardStyle, height: '130px', justifyContent: 'center', alignItems: 'center' }}><SaldoAvailable total={dataSaldo.grand_total} /></Card></Col>
         </Row>
       </div>
+      
       <Divider style={{ margin: '0 0 40px 0' }} />
+
+      {/* SECTION 2: Kartu Pengguna Naufal & Zihra */}
       <div style={{ marginBottom: '40px' }}>
         <Row gutter={[24, 24]}>
           {['naufalaufa', 'zihraangelina'].map((user) => {
             const hasWithdraw = user === 'naufalaufa' ? (dataSaldo.withdraw_naufal > 0) : (dataSaldo.withdraw_zihra > 0);
+            const isNaufal = user === 'naufalaufa';
+            
             return (
               <Col xs={24} lg={12} key={user}>
                 <Card 
                   style={elegantCardStyle}
                   title={<BalanceTitle 
-                          name={user === 'naufalaufa' ? "Naufal Aufa" : "Zihra Angelina"} 
+                          name={isNaufal ? "Naufal Aufa" : "Zihra Angelina"} 
                           avatarUrl={userAvatars[user]} 
-                          userTotalDeposit={user === 'naufalaufa' ? dataSaldo.total_deposit_naufal : dataSaldo.total_deposit_zihra} 
-                          totalDepositOverall={dataSaldo.total_deposit_overall} grandTotal={dataSaldo.grand_total} screens={screens} 
-                          colorHighlight={user === 'naufalaufa' ? "#3f8600" : "#d48806"} />}
+                          userTotalDeposit={isNaufal ? dataSaldo.total_deposit_naufal : dataSaldo.total_deposit_zihra} 
+                          totalDepositOverall={dataSaldo.total_deposit_overall} 
+                          grandTotal={dataSaldo.grand_total} 
+                          screens={screens} 
+                          colorHighlight={isNaufal ? "#3f8600" : "#d48806"} />}
                 >
                   <Row gutter={[0, 16]}>
+                    {/* Sub-Card: Deposit */}
                     <Col span={24}>
-                      <Card title={`Total Deposit ${user === 'naufalaufa' ? 'Naufal' : 'Zihra'} 💴`} variant="borderless" type="inner">
-                        <StatisticWithHide value={user === 'naufalaufa' ? dataSaldo.total_deposit_naufal : dataSaldo.total_deposit_zihra} color={user === 'naufalaufa' ? "#3f8600" : "#d48806"} />
-                        <div style={{ marginTop: '15px', display: 'flex', gap: '10px', alignItems: 'stretch' }}>
+                      <Card title={`Total Deposit ${isNaufal ? 'Naufal' : 'Zihra'} 💴`} variant="borderless" type="inner">
+                        <StatisticWithHide value={isNaufal ? dataSaldo.total_deposit_naufal : dataSaldo.total_deposit_zihra} color={isNaufal ? "#3f8600" : "#d48806"} />
+                        <div style={{ 
+                          marginTop: '15px', 
+                          display: 'flex', 
+                          flexDirection: screens.md ? 'row' : 'column', 
+                          gap: '10px', 
+                          alignItems: 'stretch' 
+                        }}>
                             <DepositModal 
-                              name={`Deposit ${user === 'naufalaufa' ? 'Naufal' : 'Zihra'} 💴`}
-                              username={user} 
-                              onSuccess={handleTransactionSuccess} />
+                                name={`Deposit ${isNaufal ? 'Naufal' : 'Zihra'} 💴`} 
+                                username={user} 
+                                onSuccess={handleTransactionSuccess} 
+                            />
                             <CancelOrEditDepositModal 
                                 username={user} 
                                 type="deposit" 
@@ -184,13 +203,25 @@ const Dashboard = () => {
                         </div>
                       </Card>
                     </Col>
+
+                    {/* Sub-Card: Withdraw */}
                     <Col span={24}>
-                      <Card title={`Total Withdraw ${user === 'naufalaufa' ? 'Naufal' : 'Zihra'} 💴`} variant="borderless" type="inner">
-                         <StatisticWithHide value={user === 'naufalaufa' ? dataSaldo.withdraw_naufal : dataSaldo.withdraw_zihra} color="#cf1322" />
+                      <Card title={`Total Withdraw ${isNaufal ? 'Naufal' : 'Zihra'} 💴`} variant="borderless" type="inner">
+                         <StatisticWithHide value={isNaufal ? dataSaldo.withdraw_naufal : dataSaldo.withdraw_zihra} color="#cf1322" />
                          <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
-                              <WithdrawModal name={`Withdraw ${user === 'naufalaufa' ? 'Naufal' : 'Zihra'} 💴`} username={user} role={users.role} maxAmount={user === 'naufalaufa' ? dataSaldo.total_naufal : dataSaldo.total_zihra} onSuccess={handleTransactionSuccess} />
-                              
+                            <div style={{ 
+                              display: 'flex', 
+                              flexDirection: screens.md ? 'row' : 'column', 
+                              gap: '10px', 
+                              alignItems: 'stretch' 
+                            }}>
+                              <WithdrawModal 
+                                  name={`Withdraw ${isNaufal ? 'Naufal' : 'Zihra'} 💴`} 
+                                  username={user} 
+                                  role={users.role} 
+                                  maxAmount={isNaufal ? dataSaldo.total_naufal : dataSaldo.total_zihra} 
+                                  onSuccess={handleTransactionSuccess} 
+                              />
                               <CancelOrEditDepositModal 
                                   username={user} 
                                   type="withdraw" 
@@ -198,7 +229,11 @@ const Dashboard = () => {
                                   disabled={users.username !== user || !hasWithdraw} 
                               />
                             </div>
-                            {!hasWithdraw && users.username === user && <Text type="secondary" style={{ fontSize: '11px', textAlign: 'center' }}>*Belum ada riwayat withdraw.</Text>}
+                            {!hasWithdraw && users.username === user && (
+                              <Text type="secondary" style={{ fontSize: '11px', textAlign: 'center' }}>
+                                *Belum ada riwayat withdraw.
+                              </Text>
+                            )}
                          </div>
                       </Card>
                     </Col>
@@ -210,19 +245,40 @@ const Dashboard = () => {
         </Row>
       </div>
 
+      {/* SECTION 3: Grafik */}
       <Row gutter={[24, 24]} style={{ marginBottom: '40px' }}>
         <Col xs={24} md={12}><Card title="Statistik Deposit Recap 📊" style={elegantCardStyle}><div style={{ height: "250px", display: "flex", justifyContent: "center", alignItems: "center" }}><ChartDeposit /></div></Card></Col>
         <Col xs={24} md={12}><Card title="Statistik Withdraw Recap 📉" style={elegantCardStyle}><div style={{ height: "250px", display: "flex", justifyContent: "center", alignItems: "center" }}><ChartWithdraw /></div></Card></Col>
       </Row>
 
-      <Divider orientation="left" style={{ margin: '0 0 30px 0' }}><span style={{ fontSize: '18px', fontWeight: 'bold' }}><RiseOutlined /> Investment & Portfolio Zone</span></Divider>
+      {/* SECTION 4: Investasi */}
+      <Divider orientation="left" style={{ margin: '0 0 30px 0' }}>
+        <span style={{ fontSize: '18px', fontWeight: 'bold' }}><RiseOutlined /> Investment & Portfolio Zone</span>
+      </Divider>
       <div style={{ marginBottom: '30px' }}><SaldoInvestmentWithdraw total={dataSaldo.total_investment} /></div>
 
       <Row gutter={[24, 24]} align="stretch">
         <Col xs={24} lg={12}>
-          <Card title={<span><LineChartOutlined /> Withdraw For Investment 🚀</span>} style={elegantCardStyle} styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '220px' } }}>
-            <Typography.Text style={{marginBottom : '10px'}}>Dana Withdraw Untuk kebutuhan investasi 💴</Typography.Text>
-            {users.role === 'admin' ? <WithdrawModal name="Withdraw to Invest 🚀" role={users.role} username="zipaladmin" isInvestment={true} onSuccess={handleTransactionSuccess} /> : <div style={{ textAlign: 'center' }}><LockOutlined style={{ fontSize: '24px', color: '#ff4d4f', marginBottom: '8px' }} /><br /><Text type="secondary">Hanya Admin yang dapat menarik dan mengakses investasi.</Text></div>}
+          <Card 
+            title={<span><LineChartOutlined /> Withdraw For Investment 🚀</span>} 
+            style={elegantCardStyle} 
+            styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '220px' } }}
+          >
+            <Text style={{ marginBottom: '10px' }}>Dana Withdraw Untuk kebutuhan investasi 💴</Text>
+            {users.role === 'admin' ? (
+              <WithdrawModal 
+                  name="Withdraw to Invest 🚀" 
+                  role={users.role} 
+                  username="zipaladmin" 
+                  isInvestment={true} 
+                  onSuccess={handleTransactionSuccess} 
+              />
+            ) : (
+              <div style={{ textAlign: 'center' }}>
+                <LockOutlined style={{ fontSize: '24px', color: '#ff4d4f', marginBottom: '8px' }} /><br />
+                <Text type="secondary">Hanya Admin yang dapat menarik dan mengakses investasi.</Text>
+              </div>
+            )}
           </Card>
         </Col>
         <Col xs={24} lg={12}><Card title={<span><FundViewOutlined /> Investment Allocation Chart</span>} style={elegantCardStyle}><div style={{ height: "220px", display: "flex", justifyContent: "center", alignItems: "center" }}><ChartInvestment /></div></Card></Col>
