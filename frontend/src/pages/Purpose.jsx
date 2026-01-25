@@ -104,7 +104,7 @@ const Purpose = () => {
       <HeadNavbar 
          title="Zipal Purpose"
          icon={<RocketOutlined/>}
-         description="Tujuan Dari Uang Keseluruhan Tabungan Mau Untuk Apa"
+         description="Tujuan Dari Uang Keseluruhan Tabungan Mau Untuk Apa Dari Zihra dan Naufal"
        />
       
       <div style={{ padding: screens.xs ? "15px" : "20px", maxWidth: "1200px", margin: "0 auto" }}>

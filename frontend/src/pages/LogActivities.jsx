@@ -172,7 +172,7 @@ const LogActivities = () => {
             <HeadNavbar
                 title="Zipal Logs Activities"
                 icon={<SafetyCertificateOutlined />}
-                description="Audit Sistem"
+                description="Audit Sistem Dari kedua user siapa saja yang masuk untuk login"
             />
 
             {/* Container Padding Responsif */}
