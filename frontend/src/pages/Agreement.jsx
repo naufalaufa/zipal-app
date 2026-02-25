@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, Button, Checkbox, Typography, Divider, Alert, message, Space } from 'antd';
 import { FileProtectOutlined, CheckCircleOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
 import { HeadNavbar } from "../components";
