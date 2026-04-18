@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Badge, Button, Checkbox, Form, Input, message } from "antd";
+import { Button, Checkbox, Form, Input, message } from "antd";
 import ReCAPTCHA from "react-google-recaptcha";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
@@ -20,11 +20,11 @@ const FormLayout = () => {
   const onFinish = async (values) => {
     if (!captchaVal) {
       message.error("Silakan verifikasi Captcha terlebih dahulu!");
-      return; 
+      return;
     }
 
-    if(isRemember === false) {
-      message.error('Tolong lakukan aksi check sebelum login')
+    if (isRemember === false) {
+      message.error("Tolong lakukan aksi check sebelum login");
     }
 
     setLoading(true);
@@ -44,9 +44,8 @@ const FormLayout = () => {
       message.success("Login Berhasil! Selamat datang " + data.username);
 
       setTimeout(() => {
-        navigate("/dashboard"); 
+        navigate("/dashboard");
       }, 1000);
-
     } catch (error) {
       if (error.response) {
         message.error(error.response.data.message);
@@ -63,74 +62,72 @@ const FormLayout = () => {
   };
 
   return (
-    <div>
-      <Badge.Ribbon text="Zipal 🧑‍🦱👧" />
-      <Form
-        layout="vertical"
-        className="login-form"
-        requiredMark={false}
-        onFinish={onFinish}
-      >
-        <Form.Item
-          label="Username"
-          name="username"
-          rules={[{ required: true, message: "Please input your username!" }]}
+    <div className="form-outer-wrapper">
+      <div className="login-card">
+        <div className="login-card-header">
+          <div className="login-badge">Zipal 🧑‍🦱👧</div>
+          <div className="login-icon-wrap">🔐</div>
+          <h2 className="login-heading">Selamat Datang Kembali</h2>
+          <p className="login-subheading">Masukkan kredensial Anda untuk masuk</p>
+        </div>
+
+        <Form
+          layout="vertical"
+          className="login-form"
+          requiredMark={false}
+          onFinish={onFinish}
         >
-          <Input placeholder="Enter your username" />
-        </Form.Item>
-
-        <Form.Item
-          label="Password"
-          name="password"
-          rules={[{ required: true, message: "Please input your password!" }]}
-        >
-          <Input.Password placeholder="Enter your password" />
-        </Form.Item>
-
-        <Form.Item name="remember" valuePropName="checked">
-          <Checkbox onChange={onChange} className="text-white">
-            Remember me
-          </Checkbox>
-        </Form.Item>
-
-        <Form.Item>
-          <ReCAPTCHA
-            sitekey={import.meta.env.VITE_SITE_KEY_RECAPTCHA_PRODUCTION}
-            className="captcha-container"
-            onChange={handleCaptchaChange}
-          />
-
-          <Button
-            type="primary"
-            htmlType="submit"
-            block
-            style={{ marginTop: "15px" }}
-            loading={loading}
+          <Form.Item
+            label="Username"
+            name="username"
+            rules={[{ required: true, message: "Please input your username!" }]}
           >
-            Submit
-          </Button>
-        </Form.Item>
-        
-        <Form.Item>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <Button 
-              type="link" 
-              onClick={() => setIsModalOpen(true)}
-              style={{ 
-                color: "white",
-                textDecoration: "underline"
-              }}
+            <Input placeholder="Masukkan username Anda" />
+          </Form.Item>
+
+          <Form.Item
+            label="Password"
+            name="password"
+            rules={[{ required: true, message: "Please input your password!" }]}
+          >
+            <Input.Password placeholder="Masukkan password Anda" />
+          </Form.Item>
+
+          <Form.Item name="remember" valuePropName="checked">
+            <Checkbox onChange={onChange}>Ingat saya</Checkbox>
+          </Form.Item>
+
+          <Form.Item>
+            <ReCAPTCHA
+              sitekey={import.meta.env.VITE_SITE_KEY_RECAPTCHA_PRODUCTION}
+              className="captcha-container"
+              onChange={handleCaptchaChange}
+            />
+            <Button
+              type="primary"
+              htmlType="submit"
+              className="login-submit-btn"
+              loading={loading}
             >
-              Forgot Password?
+              Masuk ke Akun
             </Button>
-          </div>
-        </Form.Item>
-      </Form>
-      <ForgotPassword
-        open={isModalOpen} 
-        onCancel={() => setIsModalOpen(false)} 
-      />
-      
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0 }}>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <Button
+                type="link"
+                onClick={() => setIsModalOpen(true)}
+                className="forgot-password-btn"
+              >
+                Lupa Password?
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+      </div>
+
+      <ForgotPassword open={isModalOpen} onCancel={() => setIsModalOpen(false)} />
     </div>
   );
 };
