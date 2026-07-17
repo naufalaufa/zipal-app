@@ -25,7 +25,9 @@ const FormLayout = () => {
 
     if (isRemember === false) {
       message.error("Tolong lakukan aksi check sebelum login");
+      return;
     }
+    
 
     setLoading(true);
 
