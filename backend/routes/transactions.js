@@ -1,5 +1,6 @@
 const express = require('express');
 const db = require('../config/db');
+const { sendTransactionEmail } = require('../services/transactionEmail');
 
 const router = express.Router();
 
@@ -60,14 +61,47 @@ router.get('/summary', (req, res) => {
 router.post('/transaction', (req, res) => {
     const { username, type, amount, description } = req.body;
     const date = new Date().toISOString().slice(0, 10);
-    const sql =
-        'INSERT INTO transactions (username, type, amount, date, description) VALUES (?, ?, ?, ?, ?)';
 
-    db.query(sql, [username, type, amount, date, description], err => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({
-            status: 'success',
-            message: 'Transaksi berhasil disimpan!'
+    const balanceSql = `
+        SELECT
+            SUM(CASE WHEN type = 'deposit' THEN amount ELSE 0 END) as total_deposit,
+            SUM(CASE WHEN type = 'withdraw' THEN amount ELSE 0 END) as total_withdraw
+        FROM transactions
+        WHERE username = ?
+    `;
+
+    db.query(balanceSql, [username], (balanceErr, balanceResult) => {
+        if (balanceErr) return res.status(500).json({ error: balanceErr.message });
+
+        const totalDeposit = parseFloat(balanceResult[0]?.total_deposit || 0);
+        const totalWithdraw = parseFloat(balanceResult[0]?.total_withdraw || 0);
+        const saldoSebelum = totalDeposit - totalWithdraw;
+
+        const insertSql =
+            'INSERT INTO transactions (username, type, amount, date, description) VALUES (?, ?, ?, ?, ?)';
+
+        db.query(insertSql, [username, type, amount, date, description], err => {
+            if (err) return res.status(500).json({ error: err.message });
+
+            const saldoSesudah =
+                type === 'deposit' ? saldoSebelum + Number(amount) : saldoSebelum - Number(amount);
+
+            sendTransactionEmail({
+                username,
+                type,
+                amount,
+                description,
+                date,
+                saldoSebelum,
+                saldoSesudah
+            }).catch(emailErr => {
+                console.error('❌ Gagal kirim email transaksi:', emailErr.message);
+            });
+
+            res.json({
+                status: 'success',
+                message: 'Transaksi berhasil disimpan!'
+            });
         });
     });
 });
