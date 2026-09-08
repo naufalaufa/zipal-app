@@ -13,7 +13,7 @@ const Profile = () => {
   const [imageUrl, setImageUrl] = useState(null);
   const [fileList, setFileList] = useState([]);
   
-  const [currentUser, setCurrentUser] = useState(JSON.parse(localStorage.getItem('user')) || {});
+  const [currentUser, setCurrentUser] = useState(JSON.parse(sessionStorage.getItem('user')) || {});
   const { refreshHeader } = useOutletContext() || {}; 
   
   // Kita buat 2 Form Instance terpisah
@@ -102,7 +102,7 @@ const Profile = () => {
   };
 
   const updateLocalUser = (updatedUser) => {
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+    sessionStorage.setItem('user', JSON.stringify(updatedUser));
     setCurrentUser(updatedUser);
     if (refreshHeader) refreshHeader();
   };

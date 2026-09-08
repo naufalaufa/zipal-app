@@ -5,10 +5,10 @@ const { Title, Text } = Typography
 const HeadNavbar = ({ title, icon, description }) => {
   const getUser = () => {
     try {
-      const storedUser = localStorage.getItem('user')
+      const storedUser = sessionStorage.getItem('user')
       return storedUser ? JSON.parse(storedUser) : null
     } catch (error) {
-      console.error('Gagal membaca user dari localStorage:', error)
+      console.error('Gagal membaca user dari sessionStorage:', error)
       return null
     }
   }

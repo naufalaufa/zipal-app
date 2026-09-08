@@ -1,186 +1,146 @@
-import { useState } from 'react';
-import { Card, Button, Checkbox, Typography, Divider, Alert, message, Space } from 'antd';
-import { FileProtectOutlined, CheckCircleOutlined, SafetyCertificateOutlined } from '@ant-design/icons';
-import { HeadNavbar } from "../components";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Card, Button, Checkbox, Typography, Divider, Alert, message, Space, Row, Col, Tag, Spin, Upload } from 'antd';
+import { FileProtectOutlined, CheckCircleOutlined, DownloadOutlined, UploadOutlined, ReloadOutlined } from '@ant-design/icons';
+import { HeadNavbar } from '../components';
+import AgreementSignaturePad from '../components/AgreementSignaturePad';
+import api from '../api';
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Text } = Typography;
+const formatDate = value => value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Asia/Jakarta' }).format(new Date(value)) + ' WIB' : '';
+const partyFor = username => ({ zihraangelina: 'zihra', zihra: 'zihra', naufalaufa: 'naufal', naufal: 'naufal' })[username];
 
-const Agreement = () => {
+export default function Agreement() {
+  const [agreement, setAgreement] = useState(null);
+  const [error, setError] = useState('');
   const [agreed, setAgreed] = useState(false);
-  const [isSigned, setIsSigned] = useState(false);
+  const [action, setAction] = useState('');
+  const [file, setFile] = useState(null);
+  const [confirmed, setConfirmed] = useState(false);
+  const inFlight = useRef(false);
+  const mounted = useRef(false);
+  const loadVersion = useRef(0);
+  const fetchAgreement = useCallback(async () => {
+    const version = ++loadVersion.current;
+    try {
+      const response = await api.get('/agreement/status');
+      if (mounted.current && version === loadVersion.current) { setAgreement(response.data.data); setError(''); }
+    } catch (failure) {
+      if (mounted.current && version === loadVersion.current) setError(failure.response?.data?.message || 'Gagal memuat perjanjian.');
+    }
+  }, []);
+  useEffect(() => {
+    mounted.current = true;
+    fetchAgreement();
+    const timer = setInterval(fetchAgreement, 15000);
+    const onFocus = () => fetchAgreement();
+    window.addEventListener('focus', onFocus);
+    return () => { mounted.current = false; clearInterval(timer); window.removeEventListener('focus', onFocus); };
+  }, [fetchAgreement]);
 
-  const handleSign = () => {
-    if (!agreed) return;
-    
-    setIsSigned(true);
-    message.success({
-      content: 'Perjanjian berhasil disahkan secara digital! 📜',
-      duration: 5,
-      icon: <SafetyCertificateOutlined style={{ color: '#52c41a' }} />,
-    });
+  const mutate = async (name, request, success) => {
+    if (inFlight.current) return;
+    inFlight.current = true; setAction(name);
+    try {
+      await request(); message.success(success);
+      if (name === 'upload') { setFile(null); setConfirmed(false); }
+    } catch (failure) { message.error(failure.response?.data?.message || 'Permintaan gagal. Silakan coba lagi.'); }
+    finally { await fetchAgreement(); inFlight.current = false; if (mounted.current) setAction(''); }
+  };
+  const download = async variant => {
+    if (inFlight.current) return;
+    inFlight.current = true; setAction(`download-${variant}`);
+    try {
+      const response = await api.get(`/agreement/pdf/${variant}`, { responseType: 'blob' });
+      const url = URL.createObjectURL(response.data);
+      const anchor = document.createElement('a');
+      anchor.href = url; anchor.download = `Zipal-Agreement-${variant}.pdf`;
+      document.body.appendChild(anchor); anchor.click(); anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      message.success('PDF siap diunduh.');
+    } catch (failure) {
+      let detail = 'Gagal mengunduh PDF.';
+      try { detail = JSON.parse(await failure.response.data.text()).message || detail; } catch { /* Network failures have no response body. */ }
+      message.error(detail);
+    } finally { inFlight.current = false; if (mounted.current) setAction(''); }
+  };
+  const isAdmin = agreement?.viewer.username === 'zipaladmin' && agreement?.viewer.role === 'admin';
+  const myParty = partyFor(agreement?.viewer.username);
+  const signatures = agreement?.signatures || [];
+  const ready = ['zihra', 'naufal'].every(party => signatures.some(item => item.party === party && Number(item.applied) === 1));
+  const draft = agreement?.status === 'DRAFT';
+  const mySignature = signatures.find(item => item.party === myParty);
+  const apply = image => mutate('sign', () => api.post('/agreement/sign', { signatureImage: image, agreement_id: Number(agreement.id), content_hash: agreement.content_hash, consent: agreed }), 'Tanda tangan berhasil Apply dan dikunci.');
+  const uploadFinal = () => {
+    const body = new FormData(); body.append('document', file); body.append('confirmed', String(confirmed));
+    return mutate('upload', () => api.post('/agreement/final', body), 'Dokumen FINAL tersimpan dan dikunci.');
   };
 
-  const agreementClauses = [
-    {
-      title: "Pasal 1: Tujuan & Definisi",
-      content: "Tabungan ini dibuat atas nama bersama (Zihra & Naufal) dengan tujuan masa depan bersama (Menikah/Aset/Investasi). Rekening atau wadah penyimpanan dana ini adalah milik bersama, terlepas dari siapa pemegang akun utamanya."
-    },
-    {
-      title: "Pasal 2: Mekanisme Setoran (Fairness)",
-      content: "Setiap setoran dari Zihra maupun Naufal WAJIB dicatat nominal dan tanggalnya. Hal ini untuk memastikan transparansi persentase kontribusi masing-masing pihak (apakah 50:50 atau proporsional sesuai pendapatan)."
-    },
-    {
-      title: "Pasal 3: Penggunaan Dana",
-      content: "Dana di dalam tabungan ini TIDAK BOLEH ditarik atau digunakan untuk keperluan apa pun tanpa persetujuan tertulis atau lisan dari KEDUA BELAH PIHAK. Penggunaan sepihak dianggap sebagai pelanggaran perjanjian."
-    },
-    {
-      title: "Pasal 4: Ketentuan Jika Berpisah (Putus Hubungan)",
-      content: "Apabila terjadi perpisahan di antara kedua belah pihak sebelum tujuan tabungan tercapai, maka pembagian dana dilakukan dengan prinsip keadilan sebagai berikut: \n(a) Jika data setoran tercatat rapi: Dana dikembalikan ke masing-masing pihak sesuai dengan jumlah total nominal yang telah disetorkan masing-masing.\n(b) Jika setoran dianggap lebur: Dana dibagi rata (50% untuk Zihra, 50% untuk Naufal) tanpa memandang siapa yang menyetor lebih banyak."
-    },
-    {
-      title: "Pasal 5: Keadaan Kahar (Force Majeure)",
-      content: "Jika terjadi hal yang tidak diinginkan (seperti meninggal dunia atau ketidakmampuan hukum) pada salah satu pihak, maka hak atas dana tabungan tersebut sepenuhnya jatuh kepada pihak pasangan yang masih ada, atau dapat diserahkan kepada ahli waris yang ditunjuk, sesuai kesepakatan awal."
-    },
-    {
-      title: "Pasal 6: Komitmen",
-      content: "Dengan menyetujui perjanjian ini, Zihra dan Naufal berjanji untuk saling jujur, terbuka, dan tidak menyalahgunakan kepercayaan dalam mengelola tabungan ini."
-    },
-    {
-      title: "Pasal 7: Sanksi Atas Ketidaksetiaan (Perselingkuhan)",
-      content: "Demi menjaga integritas hubungan dan kepercayaan finansial, kedua belah pihak menyepakati aturan ketat mengenai perselingkuhan:\n\nApabila salah satu pihak terbukti secara sah dan meyakinkan melakukan perselingkuhan (melibatkan hubungan romantis atau seksual dengan pihak ketiga) selama periode menabung, maka pihak yang berselingkuh dikenakan sanksi berupa:\n\n(a) Kehilangan hak atas 50% dari total dana yang telah ia setorkan.\n(b) Dana denda tersebut (poin a) akan dialihkan sepenuhnya menjadi hak milik pihak yang diselingkuhi (korban) sebagai kompensasi kerugian emosional dan waktu.\n(c) Sisa dana milik pihak yang berselingkuh akan dikembalikan, dan perjanjian tabungan bersama dinyatakan berakhir seketika."
-    }
-  ];
-
-  return (
-    <div>
-      <HeadNavbar 
-        title="Zipal Agreement"
-        icon={<FileProtectOutlined />} 
-        description="Dokumen legalitas tabungan bersama (Joint Account Agreement)"
-      />
-
-      <div style={{ maxWidth: '800px', margin: '0 auto', padding: '0 20px 40px 20px' }}>
-        
-        <Alert
-          message="Dokumen Resmi Internal"
-          description="Harap baca setiap pasal dengan teliti. Kesepakatan ini mengikat kedua belah pihak demi kenyamanan finansial bersama."
-          type="info"
-          showIcon
-          style={{ marginBottom: '20px', border: '1px solid #91d5ff', backgroundColor: '#e6f7ff' }}
-        />
-
-        <Card 
-          bordered={false} 
-          style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.08)', borderRadius: '12px' }}
-          bodyStyle={{ padding: '0' }} // Reset padding card utama agar header rapi
-        >
-          <div style={{ padding: '24px', borderBottom: '1px solid #f0f0f0', textAlign: 'center', backgroundColor: '#fafafa', borderTopLeftRadius: '12px', borderTopRightRadius: '12px' }}>
-            <Title level={3} style={{ margin: 0 }}>SURAT PERJANJIAN TABUNGAN BERSAMA</Title>
-            <Text type="secondary">Nomor: 001/ZIPAL/AGR/2026</Text>
-          </div>
-
-          <div style={{ 
-            height: '500px', 
-            overflowY: 'auto', 
-            padding: '24px', 
-            backgroundColor: '#fff' 
-          }}>
-            <Space direction="vertical" size="large" style={{ width: '100%' }}>
-              
-              <Text>
-                Pada hari ini, kami yang bertanda tangan di bawah ini:
-                <ul style={{ paddingLeft: '20px', marginTop: '10px' }}>
-                  <li><b>Pihak Pertama:</b> Zihra Angelina</li>
-                  <li><b>Pihak Kedua:</b> Naufal Aufa</li>
-                </ul>
-                Sepakat untuk mengikatkan diri dalam perjanjian tabungan bersama dengan ketentuan sebagai berikut:
-              </Text>
-
-              {agreementClauses.map((clause, index) => (
-                <Card 
-                  key={index} 
-                  type="inner" 
-                  title={<span style={{ fontWeight: 'bold', color: '#1890ff' }}>{clause.title}</span>}
-                  style={{ backgroundColor: '#fff', border: '1px solid #f0f0f0' }}
-                >
-                  <Text style={{ whiteSpace: 'pre-line', color: '#595959', lineHeight: '1.6' }}>
-                    {clause.content}
-                  </Text>
+  return <div>
+    <HeadNavbar title="Zipal Agreement" icon={<FileProtectOutlined />} description="Dokumen legalitas tabungan bersama (Joint Account Agreement)" />
+    <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 20px 40px' }}>
+      <Alert title="Dokumen Resmi Internal" description="Harap baca setiap pasal dengan teliti. Kesepakatan ini mengikat kedua belah pihak demi kenyamanan finansial bersama." type="info" showIcon style={{ marginBottom: 20, border: '1px solid #91d5ff', backgroundColor: '#e6f7ff' }} />
+      {error && <Alert type="error" title={error} showIcon action={<Button onClick={fetchAgreement} icon={<ReloadOutlined />}>Coba lagi</Button>} style={{ marginBottom: 16 }} />}
+      {!agreement && !error && <div style={{ textAlign: 'center', padding: 48 }}><Spin tip="Memuat perjanjian..." /></div>}
+      {agreement && <Card variant="borderless" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.08)', borderRadius: 12 }} styles={{ body: { padding: 0 } }}>
+        <div style={{ padding: 24, borderBottom: '1px solid #f0f0f0', textAlign: 'center', backgroundColor: '#fafafa', borderRadius: '12px 12px 0 0' }}>
+          <Title level={3} style={{ margin: 0 }}>{agreement.content.title}</Title>
+          <Text type="secondary">Nomor: {agreement.agreement_number}</Text>
+          <div style={{ marginTop: 12 }}><Tag color={draft ? 'default' : agreement.status === 'FINAL' ? 'green' : 'gold'}>{draft ? 'Menunggu tanda tangan' : agreement.status === 'FINAL' ? 'FINAL' : 'WAITING_EMETERAI'}</Tag></div>
+        </div>
+        <div style={{ maxHeight: 500, overflowY: 'auto', padding: 24, backgroundColor: '#fff' }}>
+          <Space orientation="vertical" size="large" style={{ width: '100%' }}>
+            <div><Text>{agreement.content.introduction}</Text>
+              <ul style={{ paddingLeft: 20, marginTop: 10 }}>{agreement.content.parties.map(party => <li key={party.key}><b>{party.label}:</b> {party.name}</li>)}</ul>
+              <Text>{agreement.content.preamble}</Text>
+            </div>
+            {agreement.content.clauses.map((clause, index) => <Card key={index} type="inner" title={<span style={{ fontWeight: 'bold', color: '#1890ff', whiteSpace: 'normal' }}>{clause.title}</span>} style={{ backgroundColor: '#fff', border: '1px solid #f0f0f0' }}>
+              <Text style={{ whiteSpace: 'pre-line', color: '#595959', lineHeight: 1.6 }}>{clause.content}</Text>
+            </Card>)}
+          </Space>
+        </div>
+        <div style={{ padding: 24 }}>
+          <Divider style={{ margin: '16px 0 24px' }}>TANDA TANGAN DIGITAL</Divider>
+          {draft && myParty && !mySignature && <Checkbox checked={agreed} disabled={!!action || !!error} onChange={event => setAgreed(event.target.checked)} style={{ marginBottom: 24 }}>Saya telah membaca, memahami, dan menyetujui seluruh pasal di atas tanpa paksaan dari pihak manapun.</Checkbox>}
+          <Row gutter={[20, 24]}>
+            {agreement.content.parties.map(party => {
+              const signature = signatures.find(item => item.party === party.key && Number(item.applied) === 1);
+              return <Col xs={24} md={12} key={party.key}>
+                <Card size="small" title={party.name} style={{ height: '100%' }}>
+                  <Text type="secondary">{party.label}</Text>
+                  {signature ? <div style={{ marginTop: 12 }}>
+                    <img src={signature.signature_image} alt={`Tanda tangan ${party.name}`} style={{ display: 'block', width: '100%', height: 110, objectFit: 'contain', background: '#fff' }} />
+                    <Tag color="success" icon={<CheckCircleOutlined />}>Telah menandatangani</Tag>
+                    <div><Text type="secondary" style={{ fontSize: 12 }}>{formatDate(signature.signed_at)}</Text></div>
+                  </div> : draft && myParty === party.key ? <div style={{ marginTop: 12 }}><AgreementSignaturePad name={party.name} consent={agreed && !error} loading={!!action} onApply={apply} /></div>
+                    : <div style={{ minHeight: 150, display: 'grid', placeContent: 'center' }}><Tag>Menunggu tanda tangan</Tag><Text type="secondary" style={{ fontSize: 12 }}>Hanya {party.name} yang dapat Apply.</Text></div>}
                 </Card>
-              ))}
-
-              <Divider style={{ margin: '40px 0' }}>TANDA TANGAN DIGITAL</Divider>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', textAlign: 'center', padding: '0 40px' }}>
-                <div>
-                  <div style={{ height: '60px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                    {isSigned && <Text type="success" style={{ fontFamily: 'cursive', fontSize: '18px' }}>Zihra Angelina</Text>}
-                  </div>
-                  <Divider style={{ margin: '5px 0' }} />
-                  <Text strong>Zihra Angelina</Text><br/>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>Pihak Pertama</Text>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                   {isSigned ? 
-                     <SafetyCertificateOutlined style={{ fontSize: '40px', color: '#52c41a', opacity: 0.5 }} /> : 
-                     <Text type="secondary" italic>Menunggu persetujuan...</Text>
-                   }
-                </div>
-
-                <div>
-                  <div style={{ height: '60px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                    {isSigned && <Text type="success" style={{ fontFamily: 'cursive', fontSize: '18px' }}>Naufal Aufa</Text>}
-                  </div>
-                  <Divider style={{ margin: '5px 0' }} />
-                  <Text strong>Naufal Aufa</Text><br/>
-                  <Text type="secondary" style={{ fontSize: '12px' }}>Pihak Kedua</Text>
-                </div>
-              </div>
-
-              <div style={{ height: '20px' }}></div>
-            </Space>
-          </div>
-
-          <div style={{ padding: '20px 24px', borderTop: '1px solid #f0f0f0', backgroundColor: '#fafafa', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
-            {isSigned ? (
-               <Alert 
-                 message="Dokumen Telah Disahkan" 
-                 description="Perjanjian ini telah aktif dan mengikat kedua belah pihak sejak tombol ditekan."
-                 type="success" 
-                 showIcon 
-               />
-            ) : (
-              <>
-                <Checkbox 
-                  checked={agreed} 
-                  onChange={(e) => setAgreed(e.target.checked)}
-                  style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}
-                >
-                  <Text strong>
-                    Saya telah membaca, memahami, dan menyetujui seluruh pasal yang tertulis di atas tanpa paksaan dari pihak manapun.
-                  </Text>
-                </Checkbox>
-                
-                <Button 
-                  type="primary" 
-                  size="large" 
-                  block 
-                  disabled={!agreed} // Tombol mati kalau belum centang
-                  onClick={handleSign}
-                  icon={<CheckCircleOutlined />}
-                  style={{ height: '50px', fontSize: '16px', fontWeight: 'bold' }}
-                >
-                  SAH-KAN PERJANJIAN
-                </Button>
-              </>
-            )}
-          </div>
-
-        </Card>
-      </div>
+              </Col>;
+            })}
+          </Row>
+        </div>
+        <div style={{ padding: '20px 24px', borderTop: '1px solid #f0f0f0', backgroundColor: '#fafafa', borderRadius: '0 0 12px 12px' }}>
+          <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
+            {draft ? <>
+              <Text type="secondary">{!ready ? 'Menunggu kedua pihak Apply tanda tangan.' : !isAdmin ? 'Hanya ZipalAdmin yang dapat mengesahkan perjanjian.' : 'Kedua tanda tangan lengkap. Perjanjian siap disahkan.'}</Text>
+              <Button type="primary" size="large" block disabled={!ready || !isAdmin || !!error || (!!action && action !== 'approve')} loading={action === 'approve'} onClick={() => mutate('approve', () => api.post('/agreement/approve'), 'Perjanjian disahkan. PDF siap untuk e-Meterai.')} icon={<CheckCircleOutlined />} style={{ minHeight: 50, fontSize: 16, fontWeight: 'bold' }}>SAH-KAN PERJANJIAN</Button>
+            </> : <>
+              <Alert type="success" showIcon title={agreement.status === 'FINAL' ? 'Dokumen FINAL tersimpan dan terkunci' : 'Perjanjian disahkan - menunggu e-Meterai'} description={`Disahkan oleh ZipalAdmin pada ${formatDate(agreement.approved_at)}${agreement.finalized_at ? `. Dokumen final diunggah ${formatDate(agreement.finalized_at)}.` : '.'}`} />
+              <Button icon={<DownloadOutlined />} loading={action === 'download-draft'} disabled={!!action && action !== 'download-draft'} onClick={() => download('draft')}>Download Untuk e-Meterai</Button>
+              {agreement.status === 'WAITING_EMETERAI' && isAdmin && <>
+                <Text>Download PDF, bubuhkan e-Meterai secara manual di <a href="https://ezmeterai.id/document?action=stamp" target="_blank" rel="noopener noreferrer">EZMeterai</a>, lalu unggah hasilnya di sini.</Text>
+                <Upload accept=".pdf,application/pdf" maxCount={1} fileList={file ? [file] : []} disabled={!!action} beforeUpload={candidate => {
+                  if (!/\.pdf$/i.test(candidate.name) || candidate.type !== 'application/pdf') { message.error('Pilih file PDF.'); return Upload.LIST_IGNORE; }
+                  if (candidate.size > 4 * 1024 * 1024) { message.error('Ukuran PDF maksimum 4 MB.'); return Upload.LIST_IGNORE; }
+                  setFile(candidate); setConfirmed(false); return false;
+                }} onRemove={() => { setFile(null); setConfirmed(false); }}><Button icon={<UploadOutlined />} disabled={!!action}>Pilih Dokumen Bermeterai</Button></Upload>
+                <Checkbox checked={confirmed} onChange={event => setConfirmed(event.target.checked)} disabled={!!action}>Saya sudah memeriksa isi perjanjian, kedua tanda tangan, dan e-Meterai pada PDF ini. Dokumen tidak dapat diganti setelah diunggah.</Checkbox>
+                <Button type="primary" icon={<UploadOutlined />} loading={action === 'upload'} disabled={!file || !confirmed || !!error || (!!action && action !== 'upload')} onClick={uploadFinal}>Upload Dokumen Bermeterai</Button>
+              </>}
+              {agreement.status === 'FINAL' && <Button type="primary" icon={<DownloadOutlined />} loading={action === 'download-final'} disabled={!!action && action !== 'download-final'} onClick={() => download('final')}>Lihat / Download Perjanjian Final</Button>}
+            </>}
+          </Space>
+        </div>
+      </Card>}
     </div>
-  )
+  </div>;
 }
-
-export default Agreement;

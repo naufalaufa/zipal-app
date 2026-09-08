@@ -99,7 +99,7 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
 
 // --- KOMPONEN UTAMA: Dashboard ---
 const Dashboard = () => {
-  const users = JSON.parse(localStorage.getItem('user')) || { role: 'guest' };
+  const users = JSON.parse(sessionStorage.getItem('user')) || { role: 'guest' };
   const screens = useBreakpoint(); 
   const context = useOutletContext();
   const refreshHeader = context ? context.refreshHeader : () => {};   

@@ -3,7 +3,7 @@
   import InputDeposit from './InputDeposit';
 
   const DepositModal = ({ name, username, onSuccess }) => {
-    const users = JSON.parse(localStorage.getItem('user')) || {};
+    const users = JSON.parse(sessionStorage.getItem('user')) || {};
     const [isModalOpen, setIsModalOpen] = useState(false);
     const showModal = () => setIsModalOpen(true);
     const handleOk = () => setIsModalOpen(false);
@@ -25,6 +25,7 @@
           open={isModalOpen}
           onOk={handleOk}
           onCancel={handleCancel}
+          destroyOnHidden
           footer={null} 
         >
           <InputDeposit 

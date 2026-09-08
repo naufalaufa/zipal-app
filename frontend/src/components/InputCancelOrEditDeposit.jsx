@@ -12,7 +12,7 @@ const InputCancelOrEdit = ({ lastItem, type, username, onSuccess, closeModal }) 
     useEffect(() => {
         if (lastItem) {
             form.setFieldsValue({
-                amount: lastItem.amount,
+                amount: Number(lastItem.amount),
                 description: lastItem.description
             });
         }
@@ -29,7 +29,7 @@ const InputCancelOrEdit = ({ lastItem, type, username, onSuccess, closeModal }) 
             if (onSuccess) onSuccess();
             if (closeModal) closeModal();
         } catch (error) {
-            message.error('Gagal update data');
+            message.error(error.response?.data?.message || 'Gagal update data');
         } finally {
             setLoading(false);
         }
@@ -43,7 +43,7 @@ const InputCancelOrEdit = ({ lastItem, type, username, onSuccess, closeModal }) 
             if (onSuccess) onSuccess();
             if (closeModal) closeModal();
         } catch (error) {
-            message.error('Gagal menghapus data');
+            message.error(error.response?.data?.message || 'Gagal menghapus data');
         } finally {
             setLoading(false);
         }
@@ -66,10 +66,10 @@ const InputCancelOrEdit = ({ lastItem, type, username, onSuccess, closeModal }) 
                 name="amount" 
                 rules={[{ required: true, message: 'Masukkan jumlah!' }]}
             >
-                <InputNumber 
+                <InputNumber min={1} precision={0}
                     style={{ width: '100%' }} 
                     formatter={value => value ? `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
-                    parser={value => value.replace(/\Rp\s?|(,*)/g, '')}
+                    parser={value => value.replace(/Rp\s?|,/g, '')}
                 />
             </Form.Item>
             

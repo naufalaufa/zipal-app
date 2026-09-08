@@ -112,6 +112,12 @@ const TableHistory = () => {
             ),
         },
         {
+            title: 'Tabungan',
+            dataIndex: 'goal_name',
+            key: 'goal_name',
+            render: value => value || 'Transaksi lama (belum dialokasikan)',
+        },
+        {
             title: 'Keterangan',
             dataIndex: 'description',
             key: 'description',

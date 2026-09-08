@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Button, Checkbox, Form, Input, message } from "antd";
 import ReCAPTCHA from "react-google-recaptcha";
 import { useNavigate } from "react-router-dom";
+import { startSession } from "../authSession";
 import api from "../api";
 import ForgotPassword from "./ForgotPassword";
 
@@ -37,11 +38,9 @@ const FormLayout = () => {
         password: values.password,
       });
 
-      const { accessToken, refreshToken, data } = response.data;
+      const { accessToken, data } = response.data;
 
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("user", JSON.stringify(data));
+      startSession({ accessToken, user: data });
 
       message.success("Login Berhasil! Selamat datang " + data.username);
 

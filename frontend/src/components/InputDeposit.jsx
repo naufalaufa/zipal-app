@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Form, InputNumber, Input, Button, message } from 'antd';
 import api from '../api';
+import GoalSelect from './GoalSelect';
 
 const InputDeposit = ({ username, onSuccess, closeModal }) => {
     const [loading, setLoading] = useState(false);
@@ -8,20 +9,22 @@ const InputDeposit = ({ username, onSuccess, closeModal }) => {
     const onFinish = async (values) => {
         setLoading(true);
         try {
-            await api.post('/transaction', {
+            const response = await api.post('/transaction', {
                 username: username,
                 type: 'deposit',
                 amount: values.amount,
+                goal_id: values.goal_id,
                 description: values.description
             });
             message.success('Deposit Berhasil! 💸');
             
+            if (response.data.email_status === 'failed') message.warning('Transaksi tersimpan, tetapi email gagal dikirim. Jangan ulangi transaksi.');
             if (onSuccess) onSuccess();
             if (closeModal) closeModal();
             
         } catch (error) {
             console.error(error); // Log error asli untuk debugging
-            message.error('Gagal deposit');
+            message.error(error.response?.data?.message || 'Gagal deposit');
         } finally {
             setLoading(false);
         }
@@ -29,6 +32,7 @@ const InputDeposit = ({ username, onSuccess, closeModal }) => {
 
     return (
         <Form layout="vertical" onFinish={onFinish}>
+            <GoalSelect />
             <Form.Item 
                 label="Jumlah Uang (Rp)" 
                 name="amount" 
@@ -38,9 +42,9 @@ const InputDeposit = ({ username, onSuccess, closeModal }) => {
                     style={{ width: '100%' }} 
                     placeholder="Contoh: 500000"
                     
-                    inputMode="numeric"
+                    min={1} precision={0} inputMode="numeric"
                     formatter={value => value ? `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
-                    parser={value => value.replace(/\Rp\s?|(,*)/g, '')}
+                    parser={value => value.replace(/Rp\s?|,/g, '')}
                     onKeyPress={(event) => {
                         if (!/[0-9]/.test(event.key)) {
                             event.preventDefault();

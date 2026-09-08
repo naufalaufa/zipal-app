@@ -406,6 +406,22 @@ body {
   width: 100%;
 }
 
+.footer-brand { color: #8c8c8c; font-size: 12px; }
+.contact-fab { position: fixed; right: max(22px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.contact-fab__items { display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
+.contact-fab__item, .contact-fab__toggle { width: 48px !important; min-width: 48px !important; height: 48px !important; padding: 0 !important; border: 0 !important; color: #fff !important; font-size: 20px !important; box-shadow: 0 8px 24px rgba(15, 23, 42, .2); }
+.contact-fab__item { opacity: 0; transform: translateY(18px) scale(.65) rotate(10deg); transition: opacity .25s ease, transform .42s cubic-bezier(.18, .89, .32, 1.35), box-shadow .25s ease; transition-delay: calc((1 - var(--contact-index)) * 55ms); }
+.contact-fab--open .contact-fab__items { pointer-events: auto; }
+.contact-fab--open .contact-fab__item { opacity: 1; transform: translateY(0) scale(1) rotate(0); transition-delay: calc(var(--contact-index) * 70ms); }
+.contact-fab__item--whatsapp { background: linear-gradient(135deg, #35d976, #17a852) !important; }
+.contact-fab__item--email { background: linear-gradient(135deg, #6c7cff, #4f46e5) !important; }
+.contact-fab__toggle { background: linear-gradient(135deg, #ec4899, #7c3aed) !important; box-shadow: 0 10px 28px rgba(124, 58, 237, .36); transition: transform .35s cubic-bezier(.18, .89, .32, 1.35), box-shadow .25s ease !important; }
+.contact-fab--open .contact-fab__toggle { transform: rotate(180deg); }
+.contact-fab__toggle:hover, .contact-fab__item:hover { transform: translateY(-3px) scale(1.07); box-shadow: 0 12px 30px rgba(15, 23, 42, .28); }
+.contact-fab__toggle:active, .contact-fab__item:active { animation: contact-pop .36s ease; }
+@keyframes contact-pop { 0%, 100% { scale: 1; } 45% { scale: .86; } 75% { scale: 1.12; } }
+@media (prefers-reduced-motion: reduce) { .contact-fab__item, .contact-fab__toggle { transition-duration: .01ms !important; animation: none !important; } }
+
 
 .greeting-banner {
   position: relative;

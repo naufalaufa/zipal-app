@@ -2,31 +2,40 @@ import { RouterProvider } from "react-router-dom"
 import { Suspense, useEffect, useState } from "react"
 import { PRIVATE_ROUTES, PUBLIC_ROUTES } from "./routes"
 import { Loading } from "./components"
+import { clearSession, isSessionValid, touchSession } from "./authSession"
 
 const App = () => {
-  const [token, setToken] = useState(localStorage.getItem('user'));
+  const [authenticated, setAuthenticated] = useState(() => isSessionValid());
 
   useEffect(() => {
-    const checkToken = () => {
-      const currentToken = localStorage.getItem('user');
-      
-      if (currentToken !== token) {
-        setToken(currentToken);
-      }
+    const checkSession = () => {
+      const valid = isSessionValid();
+      if (!valid) clearSession();
+      setAuthenticated(valid);
     };
-
-    const intervalId = setInterval(checkToken, 1000);
-    window.addEventListener('storage', checkToken);
+    let lastTouch = 0;
+    const onActivity = () => {
+      if (Date.now() - lastTouch < 60_000) return;
+      lastTouch = Date.now();
+      touchSession();
+    };
+    const intervalId = setInterval(checkSession, 30_000);
+    const activityEvents = ['pointerdown', 'keydown', 'scroll', 'touchstart'];
+    activityEvents.forEach(event => window.addEventListener(event, onActivity, { passive: true }));
+    window.addEventListener('focus', checkSession);
+    window.addEventListener('auth-session-changed', checkSession);
 
     return () => {
       clearInterval(intervalId);
-      window.removeEventListener('storage', checkToken);
+      activityEvents.forEach(event => window.removeEventListener(event, onActivity));
+      window.removeEventListener('focus', checkSession);
+      window.removeEventListener('auth-session-changed', checkSession);
     }
-  }, [token]); 
+  }, []);
 
   return (
     <>
-      {token ? (
+      {authenticated ? (
         <Suspense fallback={<Loading/>}>
           <RouterProvider router={PRIVATE_ROUTES}/> 
         </Suspense>

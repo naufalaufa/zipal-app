@@ -10,7 +10,7 @@ createRoot(document.getElementById('root')).render(
   </StrictMode>,
 )
 
-const users = localStorage.getItem('user');
+const users = sessionStorage.getItem('user');
 
 if (users) {
     try {
@@ -27,6 +27,6 @@ if (users) {
         }
 
     } catch (error) {
-        console.error("Data user di localStorage rusak/bukan JSON", error);
+        console.error("Data user di sessionStorage rusak/bukan JSON", error);
     }
 }

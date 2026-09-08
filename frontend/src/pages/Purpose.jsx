@@ -25,7 +25,7 @@ const Purpose = () => {
   const [dataPurpose, setDataPurpose] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const userString = localStorage.getItem('user'); 
+  const userString = sessionStorage.getItem('user'); 
   const user = userString ? JSON.parse(userString) : null;
   const isAdmin = user?.role === 'admin';
 
@@ -52,7 +52,7 @@ const Purpose = () => {
     form.validateFields().then(async (values) => {
       try {
         if (editingItem) {
-            await api.put(`/goals/${editingItem.id}`, values);
+            await api.put(`/goals/${editingItem.id}`, { ...values, expected_collected_amount: Number(editingItem.collected_amount) });
             message.success("Tujuan berhasil diperbarui! 🚀");
         } else {
             await api.post('/goals', values);
@@ -66,7 +66,7 @@ const Purpose = () => {
 
       } catch (error) {
         console.error(error);
-        message.error("Terjadi kesalahan saat menyimpan data.");
+        message.error(error.response?.data?.message || "Terjadi kesalahan saat menyimpan data.");
       }
     });
   };
@@ -78,7 +78,7 @@ const Purpose = () => {
         fetchGoals(); 
     } catch (error) {
         console.error(error);
-        message.error("Gagal menghapus data.");
+        message.error(error.response?.data?.message || "Gagal menghapus data.");
     }
   };
 
@@ -86,8 +86,8 @@ const Purpose = () => {
     setEditingItem(item);
     form.setFieldsValue({
         title: item.title,
-        target: item.target_amount, 
-        collected: item.collected_amount, 
+        target_amount: Number(item.target_amount),
+        collected_amount: Number(item.collected_amount),
         description: item.description
     }); 
     setIsModalOpen(true);
@@ -265,7 +265,7 @@ const Purpose = () => {
                 placeholder="Contoh: 100000000"
                 inputMode="numeric"
                 formatter={(value) => value ? `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
-                parser={(value) => value.replace(/\Rp\s?|(,*)/g, '')}
+                parser={(value) => value.replace(/Rp\s?|,/g, '')}
                 onKeyPress={(event) => {
                     if (!/[0-9]/.test(event.key)) {
                         event.preventDefault();
@@ -284,7 +284,7 @@ const Purpose = () => {
                   placeholder="Contoh: 500000"
                   inputMode="numeric"
                   formatter={(value) => value ? `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
-                  parser={(value) => value.replace(/\Rp\s?|(,*)/g, '')}
+                  parser={(value) => value.replace(/Rp\s?|,/g, '')}
                   onKeyPress={(event) => {
                     if (!/[0-9]/.test(event.key)) {
                         event.preventDefault();
