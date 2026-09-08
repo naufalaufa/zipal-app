@@ -17,11 +17,12 @@ import { Doughnut } from 'react-chartjs-2';
 import moment from 'moment';
 import Swal from 'sweetalert2';
 import api from "../api";
+import GoalSelect from "../components/GoalSelect";
 
 ChartJS.register(ArcElement, ChartTooltip, Legend);
 
 const Investment = () => {
-  const users = JSON.parse(localStorage.getItem('user')) || { role: 'guest' };
+  const users = JSON.parse(sessionStorage.getItem('user')) || { role: 'guest' };
   const isAdmin = users.role === 'admin'; 
 
   const [loading, setLoading] = useState(true);
@@ -57,7 +58,7 @@ const Investment = () => {
             iconColor: '#1890ff'
         });
     }
-  }, []); 
+  }, [users.role]);
 
   const fetchData = async () => {
     try {
@@ -133,20 +134,22 @@ const Investment = () => {
     }
 
     try {
-        await api.post('/transaction', {
+        const response = await api.post('/transaction', {
             username: 'zipaladmin',
             type: 'withdraw',
             amount: values.amount,
+            goal_id: values.goal_id,
             description: `${values.type} - ${values.gram} Gram`, 
             date: values.date ? values.date.format('YYYY-MM-DD') : moment().format('YYYY-MM-DD')
         });
 
         message.success('Investasi Berhasil Dicatat! 🚀');
+        if (response.data.email_status === 'failed') message.warning('Transaksi tersimpan, tetapi email gagal dikirim. Jangan ulangi transaksi.');
         setIsModalOpen(false);
         form.resetFields();
         fetchData(); 
     } catch (error) {
-        message.error('Gagal mencatat investasi');
+        message.error(error.response?.data?.message || 'Gagal mencatat investasi');
     }
   };
 
@@ -436,6 +439,7 @@ const Investment = () => {
         title="Tambah Investasi Baru 💰"
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
+        destroyOnHidden
         footer={null}
       >
         <div style={{ 
@@ -458,6 +462,7 @@ const Investment = () => {
         </div>
 
         <Form layout="vertical" form={form} onFinish={handleInvestSubmit}>
+            <GoalSelect />
             <Form.Item label="Jenis Investasi" name="type" initialValue="Emas Antam" rules={[{ required: true }]}>
                 <Select>
                     <Select.Option value="Emas Antam">Emas Antam</Select.Option>
@@ -488,7 +493,7 @@ const Investment = () => {
                     style={{ width: '100%' }} 
                     placeholder="Masukkan Harga Beli"
                     formatter={value => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} 
-                    parser={value => value.replace(/\Rp\s?|(,*)/g, '')} 
+                    parser={value => value.replace(/Rp\s?|,/g, '')}
                  />
             </Form.Item>
 

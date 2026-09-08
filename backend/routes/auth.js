@@ -2,7 +2,15 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 
+const authenticateToken = require('../middleware/auth');
 const router = express.Router();
+router.get('/auth/me', authenticateToken, (req, res) => {
+    db.query('SELECT id, username, role FROM users WHERE id = ?', [req.user.id], (error, rows) => {
+        if (error) return res.status(500).json({ message: 'Gagal mengambil akun.' });
+        if (!rows[0]) return res.status(401).json({ message: 'Akun tidak tersedia.' });
+        res.set('Cache-Control', 'no-store').json({ status: 'success', data: rows[0] });
+    });
+});
 
 router.post('/login', (req, res) => {
     const { username, password } = req.body;

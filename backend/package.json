@@ -4,9 +4,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test tests/*.test.js",
     "start": "node index.js",
-    "api-services": "nodemon index.js"
+    "api-services": "nodemon index.js",
+    "migrate:agreement": "node scripts/migrate-agreement.js",
+    "preview:agreement": "node scripts/preview-agreement.js"
   },
   "keywords": [],
   "author": "",
@@ -23,6 +25,8 @@
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
     "mysql2": "^3.16.0",
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "pdf-lib": "^1.17.1",
+    "pngjs": "^7.0.0"
   }
 }

@@ -2,6 +2,8 @@ const express = require('express');
 const db = require('../config/db');
 const { sendTransactionEmail } = require('../services/transactionEmail');
 
+const authenticateToken = require('../middleware/auth');
+const { mutateTransaction } = require('../services/transactionStore');
 const router = express.Router();
 
 router.get('/summary', (req, res) => {
@@ -58,114 +60,49 @@ router.get('/summary', (req, res) => {
     });
 });
 
-router.post('/transaction', (req, res) => {
-    const { username, type, amount, description } = req.body;
-    const date = new Date().toISOString().slice(0, 10);
-
-    const balanceSql = `
-        SELECT
-            SUM(CASE WHEN type = 'deposit' THEN amount ELSE 0 END) as total_deposit,
-            SUM(CASE WHEN type = 'withdraw' THEN amount ELSE 0 END) as total_withdraw
-        FROM transactions
-        WHERE username = ?
-    `;
-
-    db.query(balanceSql, [username], (balanceErr, balanceResult) => {
-        if (balanceErr) return res.status(500).json({ error: balanceErr.message });
-
-        const totalDeposit = parseFloat(balanceResult[0]?.total_deposit || 0);
-        const totalWithdraw = parseFloat(balanceResult[0]?.total_withdraw || 0);
-        const saldoSebelum = totalDeposit - totalWithdraw;
-
-        const insertSql =
-            'INSERT INTO transactions (username, type, amount, date, description) VALUES (?, ?, ?, ?, ?)';
-
-        db.query(insertSql, [username, type, amount, date, description], err => {
-            if (err) return res.status(500).json({ error: err.message });
-
-            const saldoSesudah =
-                type === 'deposit' ? saldoSebelum + Number(amount) : saldoSebelum - Number(amount);
-
-            sendTransactionEmail({
-                username,
-                type,
-                amount,
-                description,
-                date,
-                saldoSebelum,
-                saldoSesudah
-            }).catch(emailErr => {
-                console.error('❌ Gagal kirim email transaksi:', emailErr.message);
-            });
-
-            res.json({
-                status: 'success',
-                message: 'Transaksi berhasil disimpan!'
-            });
-        });
+const mutationError = (res, error) => {
+    console.error('Transaction failed:', error.message);
+    res.status(error.status || 500).json({ message: error.status ? error.message : 'Gagal menyimpan transaksi.' });
+};
+router.post('/transaction', authenticateToken, async (req, res) => {
+    if (req.body.username !== req.user.username) return res.status(403).json({ message: 'Akun transaksi tidak sesuai pengguna login.' });
+    let transaction;
+    try { transaction = await mutateTransaction(db, req.user.username, req.body); }
+    catch (error) { return mutationError(res, error); }
+    // Await the email before serverless runtimes end the request.
+    let emailStatus = 'sent';
+    try { await sendTransactionEmail(transaction); }
+    catch (error) { emailStatus = 'failed'; console.error('Email transaksi gagal:', error.message); }
+    res.json({ status: 'success', message: 'Transaksi berhasil disimpan!', email_status: emailStatus, transaction_id: transaction.id });
+});
+router.delete('/transaction/cancel-last/:username', authenticateToken, async (req, res) => {
+    if (req.params.username !== req.user.username) return res.status(403).json({ message: 'Transaksi bukan milik akun ini.' });
+    const type = req.query.type || 'deposit';
+    if (!['deposit', 'withdraw'].includes(type)) return res.status(400).json({ message: 'Tipe transaksi tidak valid.' });
+    try {
+        await mutateTransaction(db, req.user.username, { type }, 'delete');
+        res.json({ status: 'success', message: 'Transaksi terakhir berhasil dibatalkan!' });
+    } catch (error) { mutationError(res, error); }
+});
+router.get('/transaction/last/:username', authenticateToken, (req, res) => {
+    const type = req.query.type || 'deposit';
+    if (!['deposit', 'withdraw'].includes(type)) return res.status(400).json({ message: 'Tipe transaksi tidak valid.' });
+    db.query('SELECT * FROM transactions WHERE username = ? AND type = ? ORDER BY id DESC LIMIT 1', [req.params.username, type], (err, result) => {
+        if (err) return res.status(500).json({ message: 'Gagal mengambil transaksi.' });
+        if (!result.length) return res.status(404).json({ message: 'Belum ada transaksi.' });
+        res.json({ status: 'success', data: result[0] });
     });
 });
-
-router.delete('/transaction/cancel-last/:username', (req, res) => {
-    const { username } = req.params;
-
-    const findLastId =
-        "SELECT id FROM transactions WHERE username = ? AND type = 'deposit' ORDER BY id DESC LIMIT 1";
-
-    db.query(findLastId, [username], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
-        if (result.length === 0) {
-            return res.status(404).json({
-                status: 'fail',
-                message: 'Tidak ada deposit ditemukan!'
-            });
-        }
-
-        const lastId = result[0].id;
-
-        db.query('DELETE FROM transactions WHERE id = ?', [lastId], deleteErr => {
-            if (deleteErr)
-                return res.status(500).json({ error: deleteErr.message });
-            res.json({
-                status: 'success',
-                message: 'Deposit terakhir berhasil dibatalkan!'
-            });
-        });
-    });
-});
-
-router.get('/transaction/last/:username', (req, res) => {
-    const { username } = req.params;
-    const sql =
-        "SELECT * FROM transactions WHERE username = ? AND type = 'deposit' ORDER BY id DESC LIMIT 1";
-
-    db.query(sql, [username], (err, result) => {
-        if (err) return res.status(500).json({ error: err.message });
-        if (result.length > 0) {
-            res.json({ status: 'success', data: result[0] });
-        } else {
-            res.status(404).json({ message: 'Belum ada deposit.' });
-        }
-    });
-});
-
-router.put('/transaction/:id', (req, res) => {
-    const { id } = req.params;
-    const { amount, description } = req.body;
-    const sql = 'UPDATE transactions SET amount = ?, description = ? WHERE id = ?';
-
-    db.query(sql, [amount, description, id], err => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({
-            status: 'success',
-            message: 'Data berhasil diperbarui!'
-        });
-    });
+router.put('/transaction/:id', authenticateToken, async (req, res) => {
+    try {
+        await mutateTransaction(db, req.user.username, { ...req.body, id: req.params.id }, 'update');
+        res.json({ status: 'success', message: 'Data berhasil diperbarui!' });
+    } catch (error) { mutationError(res, error); }
 });
 
 router.get('/history', (req, res) => {
     db.query(
-        'SELECT * FROM transactions ORDER BY date DESC, id DESC',
+        'SELECT t.*, g.title AS goal_name FROM transactions t LEFT JOIN financial_goals g ON g.id = t.goal_id ORDER BY t.date DESC, t.id DESC',
         (err, results) => {
             if (err) return res.status(500).json({ error: err.message });
             res.json({ status: 'success', data: results });

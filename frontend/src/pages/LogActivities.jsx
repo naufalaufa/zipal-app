@@ -17,9 +17,9 @@ const { useBreakpoint } = Grid;
 const LogActivities = () => {
     const screens = useBreakpoint();
 
-    const user = JSON.parse(localStorage.getItem('user')) || { role: 'guest' };
+    const user = JSON.parse(sessionStorage.getItem('user')) || { role: 'guest' };
     const isAdmin = user.role === 'admin';
-    const token = localStorage.getItem('accessToken');
+    const token = sessionStorage.getItem('accessToken');
 
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -70,7 +70,7 @@ const LogActivities = () => {
                     text: 'Silakan login ulang.',
                     confirmButtonText: 'Login',
                 }).then(() => {
-                    localStorage.clear();
+                    sessionStorage.clear();
                     window.location.href = '/login'; 
                 });
             }

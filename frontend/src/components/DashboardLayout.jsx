@@ -4,6 +4,9 @@ import { Avatar, Button, Layout, Menu, theme, Modal, Typography, Tag, Divider, D
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import Swal from 'sweetalert2'
 import api from '../api';
+import FooterContacts from './FooterContacts';
+import { clearSession, getSessionUser } from '../authSession';
+const avatarFor = user => !user.avatar ? null : user.avatar.startsWith('http') ? user.avatar : `${import.meta.env.VITE_API_URL}/public/uploads/${user.avatar}`;
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title, Text } = Typography;
@@ -48,8 +51,8 @@ const menuItems = [
 
 const DashboardLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const [currentUser, setCurrentUser] = useState(JSON.parse(localStorage.getItem('user')) || { username: 'Guest', role: 'guest' });
-  const [avatarUrl, setAvatarUrl] = useState(null);
+  const [currentUser, setCurrentUser] = useState(getSessionUser() || { username: 'Guest', role: 'guest' });
+  const [avatarUrl, setAvatarUrl] = useState(() => avatarFor(currentUser));
   const [cashAvailable, setCashAvailable] = useState(0);
   const [showBalance, setShowBalance] = useState(false); 
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -59,7 +62,7 @@ const DashboardLayout = () => {
   const location = useLocation();
 
   const updateUserData = useCallback(() => {
-    const latestUser = JSON.parse(localStorage.getItem('user')) || { username: 'Guest' };
+    const latestUser = getSessionUser() || { username: 'Guest' };
     setCurrentUser(latestUser);
     
     if (latestUser.avatar) {
@@ -94,9 +97,12 @@ const DashboardLayout = () => {
   };
 
   useEffect(() => {
-    updateUserData();
-    fetchSaldoNavbar();
-  }, [updateUserData, fetchSaldoNavbar]);
+    let active = true;
+    api.get('/summary').then(({ data }) => {
+      if (active && data.status === 'success') setCashAvailable(data.data.grand_total || 0);
+    }).catch(error => console.error('Gagal load saldo navbar', error));
+    return () => { active = false; };
+  }, []);
 
   const LogoutAccount = () => {
      Swal.fire({
@@ -123,9 +129,8 @@ const DashboardLayout = () => {
       }
     }).then((result) => {
       if (result.isConfirmed) {
-        localStorage.removeItem('user');
-        sessionStorage.removeItem('admin_welcome_shown');
-        window.location.href = "/"; 
+        clearSession();
+        window.location.replace("/login");
       }
     });
   }
@@ -202,7 +207,7 @@ const DashboardLayout = () => {
           </div>
         </Content>
 
-        <Footer style={{ textAlign: 'center', flexShrink: 0 }}>Zihra Naufal (Zipal)</Footer>
+        <Footer style={{ textAlign: 'center', flexShrink: 0 }}><FooterContacts /></Footer>
       </Layout>
 
       <Modal

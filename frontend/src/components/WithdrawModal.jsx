@@ -3,7 +3,7 @@ import { Button, Modal } from 'antd';
 import InputWithdraw from './InputWithdraw';
 
 const WithdrawModal = ({ name, username, role, isInvestment = false, onSuccess }) => {
-  const currentUser = JSON.parse(localStorage.getItem('user')) || {};
+  const currentUser = JSON.parse(sessionStorage.getItem('user')) || {};
   const [isModalOpen, setIsModalOpen] = useState(false);
   const showModal = () => setIsModalOpen(true);
   const handleOk = () => setIsModalOpen(false);
@@ -40,10 +40,11 @@ const WithdrawModal = ({ name, username, role, isInvestment = false, onSuccess }
         open={isModalOpen}
         onOk={handleOk}
         onCancel={handleCancel}
+        destroyOnHidden
         footer={null} 
       >
         <InputWithdraw 
-            
+
             username={username} 
             isAdmin={isAdmin} 
             onSuccess={onSuccess} 
