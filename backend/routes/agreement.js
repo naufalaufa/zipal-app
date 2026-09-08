@@ -15,6 +15,15 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX
 } });
 
 const respond = handler => async (req, res, next) => { try { await handler(req, res); } catch (error) { next(error); } };
+// Temporary, data-free production diagnostic. Removed after the live query is verified.
+router.get('/agreement-health-internal', respond(async (req, res) => {
+    try {
+        await store.status({ id: 0, username: 'zipaladmin', role: 'admin' });
+        res.json({ ok: true });
+    } catch (error) {
+        res.status(500).json({ ok: false, code: error.code || 'UNKNOWN', message: String(error.message || 'unknown').slice(0, 240) });
+    }
+}));
 const adminOnly = (req, res, next) => isAgreementAdmin(req.agreementUser) ? next() : res.status(403).json({ message: 'Hanya ZipalAdmin yang dapat melakukan tindakan ini.' });
 router.use('/agreement', authenticateToken, agreementUser, (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
 router.get('/agreement/status', respond(async (req, res) => res.json({ status: 'success', data: await store.status(req.agreementUser) })));
