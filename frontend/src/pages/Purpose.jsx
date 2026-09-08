@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Card, Row, Col, Button, Modal, Form, Input, InputNumber, Progress, Typography, Popconfirm, message, Empty, Tooltip, Spin, Grid} from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, AimOutlined, RocketOutlined, } from "@ant-design/icons";
+import { Card, Row, Col, Button, Modal, Form, Input, InputNumber, Progress, Typography, Popconfirm, message, Empty, Tooltip, Spin, Grid, Tag} from "antd";
+import { PlusOutlined, EditOutlined, DeleteOutlined, AimOutlined, RocketOutlined, CheckCircleFilled } from "@ant-design/icons";
 import { HeadNavbar } from "../components";
 import api from "../api";
 
@@ -152,7 +152,9 @@ const Purpose = () => {
           {dataPurpose.map((item) => {
             const target = parseFloat(item.target_amount);
             const collected = parseFloat(item.collected_amount);
-            const percent = target > 0 ? ((collected / target) * 100).toFixed(1) : 0;
+            const completed = target > 0 && collected >= target;
+            const remaining = Math.max(target - collected, 0);
+            const percent = target > 0 ? Math.min((collected / target) * 100, 100).toFixed(1) : 0;
             
             return (
               <Col xs={24} md={12} lg={8} key={item.id}>
@@ -200,7 +202,7 @@ const Purpose = () => {
                             <AimOutlined style={{ fontSize: '24px', color: '#d48806' }} />
                         </div>
                     }
-                    title={<span style={{ fontSize: "16px", fontWeight: "bold", whiteSpace: "normal" }}>{item.title}</span>}
+                    title={<span style={{ fontSize: "16px", fontWeight: "bold", whiteSpace: "normal" }}>{item.title} {completed && <Tooltip title="Target tabungan sudah tercapai"><CheckCircleFilled style={{ color: '#52c41a', marginLeft: 6 }} /></Tooltip>}</span>}
                     description={
                       <div style={{ minHeight: "60px" }}>
                          <Text type="secondary" ellipsis={{ tooltip: item.description, rows: 2 }}>
@@ -211,8 +213,9 @@ const Purpose = () => {
                   />
                   
                   <div style={{ marginTop: "20px" }}>
+                    {completed && <Tag color="success" icon={<CheckCircleFilled />} style={{ marginBottom: 12 }}>DONE — Target tercapai</Tag>}
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#8c8c8c" }}>
-                      <span>Terkumpul</span>
+                      <span>Saldo saat ini</span>
                       <span>Target</span>
                     </div>
                     <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", marginBottom: "5px", fontSize: screens.xs ? "14px" : "15px" }}>
@@ -222,12 +225,17 @@ const Purpose = () => {
                     
                     <Progress 
                         percent={parseFloat(percent)} 
-                        status="active" 
+                        status={completed ? "success" : "active"}
                         strokeColor={{
                             '0%': '#108ee9',
                             '100%': '#87d068',
                         }}
                     />
+                    <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, background: completed ? '#f6ffed' : '#f5f7ff', border: `1px solid ${completed ? '#b7eb8f' : '#d9e2ff'}` }}>
+                      <Text style={{ color: completed ? '#389e0d' : '#595959', fontSize: 13 }}>
+                        {completed ? <>Target sudah terpenuhi. Surplus <b>{formatRupiah(Math.max(collected - target, 0))}</b>.</> : <>Masih kurang <b style={{ color: '#cf1322' }}>{formatRupiah(remaining)}</b> untuk mencapai {formatRupiah(target)}.</>}
+                      </Text>
+                    </div>
                   </div>
                 </Card>
               </Col>

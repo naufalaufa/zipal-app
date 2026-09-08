@@ -2,6 +2,7 @@ const { createHash } = require('crypto');
 const { fail, assertMember, assertSign, assertApprove, assertFinalize } = require('./agreementPolicy');
 const { validateSignature, validateFinalPdf } = require('./agreementFiles');
 const { generateAgreementPdf } = require('./agreementPdf');
+const { ensureAgreementSchema } = require('./productionSchema');
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const AGREEMENT_ID = 1;
 const iso = value => value ? new Date(value).toISOString() : null;
@@ -23,9 +24,27 @@ function createAgreementStore(pool, generatePdf = generateAgreementPdf) {
     }
     async function status(user) {
         assertMember(user);
-        const [rows] = await pool.promise().query('SELECT id, agreement_number, content_json, content_hash, status, DATE_FORMAT(approved_at, "%Y-%m-%dT%H:%i:%s.%fZ") AS approved_at, DATE_FORMAT(finalized_at, "%Y-%m-%dT%H:%i:%s.%fZ") AS finalized_at FROM agreements WHERE id = ?', [AGREEMENT_ID]);
+        let rows;
+        try {
+            [rows] = await pool.promise().query('SELECT id, agreement_number, content_json, content_hash, status, DATE_FORMAT(approved_at, "%Y-%m-%dT%H:%i:%s.%fZ") AS approved_at, DATE_FORMAT(finalized_at, "%Y-%m-%dT%H:%i:%s.%fZ") AS finalized_at FROM agreements WHERE id = ?', [AGREEMENT_ID]);
+        } catch (error) {
+            if (error.code !== 'ER_NO_SUCH_TABLE') throw error;
+            await ensureAgreementSchema(pool);
+            [rows] = await pool.promise().query('SELECT id, agreement_number, content_json, content_hash, status, DATE_FORMAT(approved_at, "%Y-%m-%dT%H:%i:%s.%fZ") AS approved_at, DATE_FORMAT(finalized_at, "%Y-%m-%dT%H:%i:%s.%fZ") AS finalized_at FROM agreements WHERE id = ?', [AGREEMENT_ID]);
+        }
+        if (!rows[0]) {
+            await ensureAgreementSchema(pool);
+            [rows] = await pool.promise().query('SELECT id, agreement_number, content_json, content_hash, status, DATE_FORMAT(approved_at, "%Y-%m-%dT%H:%i:%s.%fZ") AS approved_at, DATE_FORMAT(finalized_at, "%Y-%m-%dT%H:%i:%s.%fZ") AS finalized_at FROM agreements WHERE id = ?', [AGREEMENT_ID]);
+        }
         if (!rows[0]) throw fail('Agreement belum tersedia. Jalankan migration Agreement.', 503);
-        const [signatures] = await pool.promise().query('SELECT user_id, party, applied, signature_image, DATE_FORMAT(signed_at, "%Y-%m-%dT%H:%i:%s.%fZ") AS signed_at FROM agreement_applications WHERE agreement_id = ?', [AGREEMENT_ID]);
+        let signatures;
+        try {
+            [signatures] = await pool.promise().query('SELECT user_id, party, applied, signature_image, DATE_FORMAT(signed_at, "%Y-%m-%dT%H:%i:%s.%fZ") AS signed_at FROM agreement_applications WHERE agreement_id = ?', [AGREEMENT_ID]);
+        } catch (error) {
+            if (error.code !== 'ER_NO_SUCH_TABLE') throw error;
+            await ensureAgreementSchema(pool);
+            [signatures] = await pool.promise().query('SELECT user_id, party, applied, signature_image, DATE_FORMAT(signed_at, "%Y-%m-%dT%H:%i:%s.%fZ") AS signed_at FROM agreement_applications WHERE agreement_id = ?', [AGREEMENT_ID]);
+        }
         const agreement = rows[0];
         return { ...agreement, content: typeof agreement.content_json === 'string' ? JSON.parse(agreement.content_json) : agreement.content_json, content_json: undefined, signatures, viewer: user };
     }

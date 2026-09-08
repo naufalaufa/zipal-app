@@ -4,6 +4,7 @@ const { sendTransactionEmail } = require('../services/transactionEmail');
 
 const authenticateToken = require('../middleware/auth');
 const { mutateTransaction } = require('../services/transactionStore');
+const { ensureTransactionGoalSchema } = require('../services/productionSchema');
 const router = express.Router();
 
 router.get('/summary', (req, res) => {
@@ -67,7 +68,7 @@ const mutationError = (res, error) => {
 router.post('/transaction', authenticateToken, async (req, res) => {
     if (req.body.username !== req.user.username) return res.status(403).json({ message: 'Akun transaksi tidak sesuai pengguna login.' });
     let transaction;
-    try { transaction = await mutateTransaction(db, req.user.username, req.body); }
+    try { await ensureTransactionGoalSchema(db); transaction = await mutateTransaction(db, req.user.username, req.body); }
     catch (error) { return mutationError(res, error); }
     // Await the email before serverless runtimes end the request.
     let emailStatus = 'sent';
@@ -80,6 +81,7 @@ router.delete('/transaction/cancel-last/:username', authenticateToken, async (re
     const type = req.query.type || 'deposit';
     if (!['deposit', 'withdraw'].includes(type)) return res.status(400).json({ message: 'Tipe transaksi tidak valid.' });
     try {
+        await ensureTransactionGoalSchema(db);
         await mutateTransaction(db, req.user.username, { type }, 'delete');
         res.json({ status: 'success', message: 'Transaksi terakhir berhasil dibatalkan!' });
     } catch (error) { mutationError(res, error); }
@@ -95,19 +97,22 @@ router.get('/transaction/last/:username', authenticateToken, (req, res) => {
 });
 router.put('/transaction/:id', authenticateToken, async (req, res) => {
     try {
+        await ensureTransactionGoalSchema(db);
         await mutateTransaction(db, req.user.username, { ...req.body, id: req.params.id }, 'update');
         res.json({ status: 'success', message: 'Data berhasil diperbarui!' });
     } catch (error) { mutationError(res, error); }
 });
 
 router.get('/history', (req, res) => {
-    db.query(
-        'SELECT t.*, g.title AS goal_name FROM transactions t LEFT JOIN financial_goals g ON g.id = t.goal_id ORDER BY t.date DESC, t.id DESC',
-        (err, results) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.json({ status: 'success', data: results });
-        }
-    );
+    const send = (err, results) => {
+        if (err) return res.status(500).json({ message: 'Gagal mengambil History.', code: err.code });
+        res.set('Cache-Control', 'no-store').json({ status: 'success', data: results });
+    };
+    db.query('SELECT t.*, g.title AS goal_name FROM transactions t LEFT JOIN financial_goals g ON g.id = t.goal_id ORDER BY t.date DESC, t.id DESC', (err, results) => {
+        // Backward-compatible fallback keeps legacy history visible during rolling deployments.
+        if (err?.code === 'ER_BAD_FIELD_ERROR') return db.query('SELECT t.*, NULL AS goal_name FROM transactions t ORDER BY t.date DESC, t.id DESC', send);
+        send(err, results);
+    });
 });
 
 router.get('/investments', (req, res) => {
