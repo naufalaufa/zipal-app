@@ -4,7 +4,7 @@ const { sendTransactionEmail } = require('../services/transactionEmail');
 
 const authenticateToken = require('../middleware/auth');
 const { mutateTransaction } = require('../services/transactionStore');
-const { ensureAgreementSchema, ensureTransactionGoalSchema } = require('../services/productionSchema');
+const { ensureTransactionGoalSchema } = require('../services/productionSchema');
 const router = express.Router();
 
 router.get('/summary', (req, res) => {
@@ -103,13 +103,7 @@ router.put('/transaction/:id', authenticateToken, async (req, res) => {
     } catch (error) { mutationError(res, error); }
 });
 
-router.get('/history', async (req, res) => {
-    try {
-        await ensureAgreementSchema(db);
-        res.set('X-Agreement-Bootstrap', 'ok');
-    } catch (error) {
-        res.set('X-Agreement-Bootstrap', `error-${error.code || 'unknown'}`);
-    }
+router.get('/history', (req, res) => {
     const send = (err, results) => {
         if (err) return res.status(500).json({ message: 'Gagal mengambil History.', code: err.code });
         res.set('Cache-Control', 'no-store').json({ status: 'success', data: results });
