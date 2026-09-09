@@ -7,6 +7,20 @@ const query = (sql, params = []) => db.promise().query(sql, params).then(([rows]
 const goalSelect = `SELECT id,title,target_amount,collected_amount,description,category,lifecycle_status,configured_priority,target_date,
  refill_enabled,healthy_threshold,critical_threshold,target_reached_at,cycle_type,cycle_interval,next_due_date,is_recurring,
  milestone_behavior,created_at,updated_at FROM financial_goals`;
+const legacyGoal = goal => ({ ...goal, category:null, lifecycle_status:'ACTIVE', configured_priority:null, target_date:null,
+    refill_enabled:0, healthy_threshold:.8, critical_threshold:.5, target_reached_at:Number(goal.collected_amount) >= Number(goal.target_amount) ? goal.created_at : null,
+    cycle_type:null, cycle_interval:null, next_due_date:null, is_recurring:0, milestone_behavior:'STOP', updated_at:goal.created_at,
+    schema_legacy:true });
+const loadGoals = async (suffix = '', params = []) => {
+    try { return await query(`${goalSelect}${suffix}`, params); }
+    catch (error) {
+        if (error.code !== 'ER_BAD_FIELD_ERROR') throw error;
+        const safeSuffix = suffix.replace(/\bcategory\s*=\s*\?/g, '1=0').replace(/configured_priority IS NULL,configured_priority,/g, '');
+        const safeParams = suffix.includes('category=?') ? params.slice(1) : params;
+        const rows = await query(`SELECT id,title,target_amount,collected_amount,description,created_at FROM financial_goals${safeSuffix}`, safeParams);
+        return rows.map(legacyGoal);
+    }
+};
 const number = value => Number(value);
 const bool = value => value === true || value === 1 || value === '1';
 const fail = (res, error) => { console.error(error); res.status(error.status || 500).json({ message: error.status ? error.message : 'Gagal memproses Financial Goals.' }); };
@@ -35,14 +49,14 @@ router.get('/goals', async (req, res) => {
     try {
         const params = []; let where = '';
         if (req.query.category && validCategory(req.query.category)) { where = ' WHERE category=?'; params.push(req.query.category); }
-        const rows = await query(`${goalSelect}${where} ORDER BY configured_priority IS NULL,configured_priority,id`, params);
+        const rows = await loadGoals(`${where} ORDER BY configured_priority IS NULL,configured_priority,id`, params);
         res.json({ status: 'success', data: rows.map(deriveGoal) });
     } catch (error) { fail(res, error); }
 });
 
 router.get('/goals/summary', async (_req, res) => {
     try {
-        const goals = (await query(goalSelect)).map(deriveGoal);
+        const goals = (await loadGoals()).map(deriveGoal);
         const totalBalance = goals.reduce((sum, goal) => sum + goal.current_amount, 0);
         const totalTarget = goals.reduce((sum, goal) => sum + goal.target_amount, 0);
         const protections = goals.filter(goal => goal.category === CATEGORIES.PROTECTION);
@@ -63,7 +77,7 @@ router.get('/goals/summary', async (_req, res) => {
 router.get('/goals/:id', async (req, res, next) => {
     if (!/^\d+$/.test(req.params.id)) return next();
     try {
-        const rows = await query(`${goalSelect} WHERE id=?`, [req.params.id]);
+        const rows = await loadGoals(' WHERE id=?', [req.params.id]);
         if (!rows.length) return res.status(404).json({ message: 'Goal tidak ditemukan.' });
         const [stats] = await query(`SELECT COUNT(*) transaction_count,COALESCE(SUM(CASE WHEN type='deposit' THEN amount ELSE 0 END),0) total_deposit,
           COALESCE(SUM(CASE WHEN type='withdraw' THEN amount ELSE 0 END),0) total_withdrawal,MAX(date) last_transaction FROM transactions WHERE goal_id=?`, [req.params.id]);
@@ -120,7 +134,7 @@ router.post('/goals/refill-recommendation', async (req, res) => {
     const capacity = number(req.body.monthly_saving_capacity);
     if (!Number.isFinite(capacity) || capacity <= 0) return res.status(400).json({ message: 'Kapasitas menabung harus lebih dari nol.' });
     try {
-        const recommendations = buildRecommendation(await query(goalSelect), capacity);
+        const recommendations = buildRecommendation(await loadGoals(), capacity);
         res.json({ status: 'success', data: { capacity, allocated: recommendations.reduce((sum, item) => sum + item.allocation, 0), recommendations } });
     } catch (error) { fail(res, error); }
 });
@@ -128,7 +142,7 @@ router.post('/goals/refill-recommendation', async (req, res) => {
 router.get('/financial-analytics', async (req, res) => {
     try {
         const months = { '1M':1,'3M':3,'6M':6,'1Y':12,ALL:1200 }[req.query.period] || 6;
-        const goals = (await query(goalSelect)).map(deriveGoal);
+        const goals = (await loadGoals()).map(deriveGoal);
         const monthly = await query(`SELECT DATE_FORMAT(date,'%Y-%m') period,SUM(CASE WHEN type='deposit' THEN amount ELSE 0 END) deposits,
           SUM(CASE WHEN type='withdraw' THEN amount ELSE 0 END) withdrawals FROM transactions WHERE goal_id IS NOT NULL
           AND date>=DATE_SUB(CURRENT_DATE,INTERVAL ? MONTH) GROUP BY DATE_FORMAT(date,'%Y-%m') ORDER BY period`, [months]);
