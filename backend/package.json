@@ -9,6 +9,7 @@
     "api-services": "nodemon index.js",
     "migrate:agreement": "node scripts/migrate-agreement.js",
     "migrate:transaction-goal": "node scripts/migrate-transaction-goal.js",
+    "migrate:financial-goals": "node scripts/migrate-financial-goals.js",
     "backup:critical": "node scripts/backup-critical-data.js",
     "preview:agreement": "node scripts/preview-agreement.js"
   },

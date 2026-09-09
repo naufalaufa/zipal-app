@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'; 
-import { HistoryOutlined, SafetyCertificateOutlined , DollarCircleOutlined, DashboardOutlined, UserOutlined, FileOutlined, LogoutOutlined , EyeOutlined , EyeInvisibleOutlined , WalletOutlined,  TeamOutlined, IdcardOutlined } from '@ant-design/icons';
+import { AreaChartOutlined, HistoryOutlined, SafetyCertificateOutlined , DollarCircleOutlined, DashboardOutlined, UserOutlined, FileOutlined, LogoutOutlined , EyeOutlined , EyeInvisibleOutlined , WalletOutlined,  TeamOutlined, IdcardOutlined } from '@ant-design/icons';
 import { Avatar, Button, Layout, Menu, theme, Modal, Typography, Tag, Divider, Descriptions } from 'antd'; 
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import Swal from 'sweetalert2'
@@ -31,6 +31,11 @@ const menuItems = [
     key: '/dashboard/purpose',
     icon: <TeamOutlined />, 
     label: 'Purpose' 
+  },
+  {
+    key: '/dashboard/analytics',
+    icon: <AreaChartOutlined />,
+    label: 'Analytics'
   },
   { 
     key: '/dashboard/profile',
