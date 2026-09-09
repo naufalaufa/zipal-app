@@ -46,12 +46,20 @@ async function mutateTransaction(pool, actor, input, mode = 'create') {
         } else {
             await connection.query('UPDATE transactions SET amount = ?, description = ? WHERE id = ?', [input.amount, input.description || '', id]);
         }
-        if (goal) await connection.query(`UPDATE financial_goals
-            SET collected_amount = collected_amount + ?,
-                target_reached_at = CASE
-                    WHEN target_reached_at IS NULL AND collected_amount + ? >= target_amount THEN CURRENT_TIMESTAMP
-                    ELSE target_reached_at END
-            WHERE id = ?`, [delta, delta, goalId]);
+        if (goal) {
+            try {
+                await connection.query(`UPDATE financial_goals
+                    SET collected_amount = collected_amount + ?,
+                        target_reached_at = CASE
+                            WHEN target_reached_at IS NULL AND collected_amount + ? >= target_amount THEN CURRENT_TIMESTAMP
+                            ELSE target_reached_at END
+                    WHERE id = ?`, [delta, delta, goalId]);
+            } catch (error) {
+                // Rolling-deployment compatibility: keep existing transactions usable until migration 003 is applied.
+                if (error.code !== 'ER_BAD_FIELD_ERROR') throw error;
+                await connection.query('UPDATE financial_goals SET collected_amount = collected_amount + ? WHERE id = ?', [delta, goalId]);
+            }
+        }
         await connection.commit();
         return { id, username: actor, type, amount: input.amount, description: input.description, date, goalName: goal?.title, saldoSebelum: before, saldoSesudah: before + delta };
     } catch (error) {
