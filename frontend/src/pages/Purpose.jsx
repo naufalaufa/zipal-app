@@ -1,317 +1,87 @@
-import { useState, useEffect } from "react";
-import { Card, Row, Col, Button, Modal, Form, Input, InputNumber, Progress, Typography, Popconfirm, message, Empty, Tooltip, Spin, Grid, Tag} from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, AimOutlined, RocketOutlined, CheckCircleFilled } from "@ant-design/icons";
-import { HeadNavbar } from "../components";
-import api from "../api";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Button, Checkbox, Col, DatePicker, Form, Input, InputNumber, List, message, Modal, Row, Segmented, Select, Space, Spin, Typography } from 'antd';
+import { PlusOutlined, RocketOutlined } from '@ant-design/icons';
+import { HeadNavbar } from '../components';
+import api from '../api';
+import { CATEGORIES, EmptyGoalCategory, FinancialGoalCard, FinancialGoalDetail, FinancialGoalSummary, money, RecoveryModeCard } from '../features/financialGoals';
+import '../features/financialGoals.css';
 
-const { Title, Text } = Typography;
 const { TextArea } = Input;
-const { useBreakpoint } = Grid;
+const categoryOptions = Object.entries(CATEGORIES).map(([value, item]) => ({ value, label: <span>{item.icon} {item.label}</span> }));
+const defaults = { category: 'PLANNED', configured_priority: 4, healthy_threshold: .8, critical_threshold: .5, refill_enabled: false };
+const asDate = value => value?.format ? value.format('YYYY-MM-DD') : value || null;
 
-const formatRupiah = (number) => {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0
-  }).format(number);
-};
+export default function Purpose() {
+  const [goals, setGoals] = useState([]); const [summary, setSummary] = useState({}); const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('ALL'); const [formOpen, setFormOpen] = useState(false); const [editing, setEditing] = useState(null);
+  const [detailId, setDetailId] = useState(null); const [detail, setDetail] = useState(null); const [detailLoading, setDetailLoading] = useState(false);
+  const [saving, setSaving] = useState(false); const [form] = Form.useForm(); const category = Form.useWatch('category', form);
+  const [planOpen, setPlanOpen] = useState(false); const [capacity, setCapacity] = useState(null); const [plan, setPlan] = useState(null); const [planLoading, setPlanLoading] = useState(false);
+  const user = JSON.parse(sessionStorage.getItem('user') || '{}'); const isAdmin = user.role === 'admin';
 
-const Purpose = () => {
-  const screens = useBreakpoint();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState(null); 
-  const [form] = Form.useForm();
-  
-  const [dataPurpose, setDataPurpose] = useState([]);
-  const [loading, setLoading] = useState(false);
-
-  const userString = sessionStorage.getItem('user'); 
-  const user = userString ? JSON.parse(userString) : null;
-  const isAdmin = user?.role === 'admin';
-
-  const fetchGoals = async () => {
+  const load = useCallback(async () => {
     setLoading(true);
-    try {
-      const res = await api.get('/goals');
-      if (res.data.status === 'success') {
-        setDataPurpose(res.data.data);
-      }
-    } catch (error) {
-      message.error("Gagal mengambil data tujuan.");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchGoals();
+    try { const [goalRes, summaryRes] = await Promise.all([api.get('/goals'), api.get('/goals/summary')]); setGoals(goalRes.data.data); setSummary(summaryRes.data.data); }
+    catch (error) { message.error(error.response?.data?.message || 'Gagal memuat Financial Goals. Pastikan migration terbaru sudah dijalankan.'); }
+    finally { setLoading(false); }
   }, []);
+  useEffect(() => { load(); }, [load]);
 
-  const handleOk = () => {
-    form.validateFields().then(async (values) => {
-      try {
-        if (editingItem) {
-            await api.put(`/goals/${editingItem.id}`, { ...values, expected_collected_amount: Number(editingItem.collected_amount) });
-            message.success("Tujuan berhasil diperbarui! 🚀");
-        } else {
-            await api.post('/goals', values);
-            message.success("Tujuan baru berhasil ditambahkan! semangat 💪");
-        }
-        
-        fetchGoals();
-        setIsModalOpen(false);
-        form.resetFields();
-        setEditingItem(null);
+  const counts = useMemo(() => goals.reduce((map, goal) => ({ ...map, [goal.category]: (map[goal.category] || 0) + 1 }), {}), [goals]);
+  const filtered = filter === 'ALL' ? goals : goals.filter(goal => goal.category === filter);
+  const filters = [{ value:'ALL', label:`Semua ${goals.length}` }, ...Object.entries(CATEGORIES).map(([value, item]) => ({ value, label:<span>{item.icon} {item.short} {counts[value] || 0}</span> }))];
 
-      } catch (error) {
-        console.error(error);
-        message.error(error.response?.data?.message || "Terjadi kesalahan saat menyimpan data.");
-      }
-    });
+  const openAdd = () => { setEditing(null); form.setFieldsValue(defaults); setFormOpen(true); };
+  const openEdit = goal => { setEditing(goal); form.setFieldsValue({ ...goal, collected_amount: undefined }); setFormOpen(true); };
+  const openDetail = async id => {
+    setDetailId(id); setDetail(null); setDetailLoading(true);
+    try { const response = await api.get(`/goals/${id}`); setDetail(response.data.data); }
+    catch (error) { message.error(error.response?.data?.message || 'Gagal memuat detail goal.'); }
+    finally { setDetailLoading(false); }
   };
-
-  const handleDelete = async (id) => {
+  const save = async () => {
     try {
-        await api.delete(`/goals/${id}`);
-        message.success("Data berhasil dihapus.");
-        fetchGoals(); 
-    } catch (error) {
-        console.error(error);
-        message.error(error.response?.data?.message || "Gagal menghapus data.");
-    }
+      const values = await form.validateFields(); setSaving(true);
+      const payload = { ...values, target_date: asDate(values.target_date), next_due_date: asDate(values.next_due_date) };
+      if (editing) await api.put(`/goals/${editing.id}`, payload); else await api.post('/goals', payload);
+      message.success(editing ? 'Goal berhasil diperbarui.' : 'Goal berhasil dibuat.'); setFormOpen(false); form.resetFields(); await load();
+    } catch (error) { if (error?.errorFields) return; message.error(error.response?.data?.message || 'Gagal menyimpan goal.'); }
+    finally { setSaving(false); }
+  };
+  const calculatePlan = async () => {
+    if (!capacity || capacity <= 0) return message.warning('Masukkan kapasitas menabung bulan ini.');
+    setPlanLoading(true);
+    try { const response = await api.post('/goals/refill-recommendation', { monthly_saving_capacity: capacity }); setPlan(response.data.data); }
+    catch (error) { message.error(error.response?.data?.message || 'Gagal menghitung rencana refill.'); }
+    finally { setPlanLoading(false); }
   };
 
-  const openEditModal = (item) => {
-    setEditingItem(item);
-    form.setFieldsValue({
-        title: item.title,
-        target_amount: Number(item.target_amount),
-        collected_amount: Number(item.collected_amount),
-        description: item.description
-    }); 
-    setIsModalOpen(true);
-  };
-
-  const openAddModal = () => {
-    setEditingItem(null);
-    form.resetFields();
-    setIsModalOpen(true);
-  };
-
-  return (
-   <div>
-      <HeadNavbar 
-         title="Zipal Purpose"
-         icon={<RocketOutlined/>}
-         description="Tujuan Dari Uang Keseluruhan Tabungan Mau Untuk Apa Dari Zihra dan Naufal"
-       />
-      
-      <div style={{ padding: screens.xs ? "15px" : "20px", maxWidth: "1200px", margin: "0 auto" }}>
-      
-      <div style={{ 
-          display: "flex", 
-          flexDirection: screens.xs ? "column" : "row", 
-          justifyContent: "space-between", 
-          alignItems: screens.xs ? "flex-start" : "center", 
-          marginBottom: "24px",
-          gap: screens.xs ? "15px" : "0" 
-      }}>
-        <div style={{ width: screens.xs ? "100%" : "auto" }}>
-          <Title level={3} style={{ margin: 0, fontSize: screens.xs ? "20px" : "24px" }}>
-             <RocketOutlined style={{ color: "#1890ff", marginRight: "8px" }} /> Financial Goals
-          </Title>
-          <Text type="secondary" style={{ fontSize: screens.xs ? "13px" : "14px" }}>
-             Monitor progress investasi dan tujuan keuangan kalian.
-          </Text>
-        </div>
-        
-        <Tooltip title={!isAdmin ? "Hanya admin yang bisa menambah" : ""}>
-          <Button 
-            type="primary" 
-            disabled={!isAdmin} 
-            icon={<PlusOutlined />} 
-            size="large"
-            onClick={openAddModal}
-            style={{ 
-                borderRadius: "8px", 
-                width: screens.xs ? "100%" : "auto" 
-            }}
-          >
-            Tambah Tujuan
-          </Button>
-        </Tooltip>
-      </div>
-
-      {loading ? (
-          <div style={{textAlign: 'center', padding: '50px'}}><Spin size="large" /></div>
-      ) : dataPurpose.length === 0 ? (
-         <Empty description="Belum ada tujuan finansial. Yuk buat sekarang!" />
-      ) : (
-        <Row gutter={[24, 24]}>
-          {dataPurpose.map((item) => {
-            const target = parseFloat(item.target_amount);
-            const collected = parseFloat(item.collected_amount);
-            const completed = target > 0 && collected >= target;
-            const remaining = Math.max(target - collected, 0);
-            const percent = target > 0 ? Math.min((collected / target) * 100, 100).toFixed(1) : 0;
-            
-            return (
-              <Col xs={24} md={12} lg={8} key={item.id}>
-                <Card
-                  hoverable
-                  style={{ borderRadius: "12px", border: "1px solid #f0f0f0" }}
-                  actions={[
-                    isAdmin ? (
-                        <Tooltip title="Edit Data" key="edit">
-                            <EditOutlined 
-                                onClick={() => openEditModal(item)} 
-                                style={{ color: "#faad14", fontSize: "18px" }} 
-                            />
-                        </Tooltip>
-                    ) : (
-                        <Tooltip title="Akses Dibatasi" key="edit-disabled">
-                            <EditOutlined 
-                                style={{ color: "#d9d9d9", fontSize: "18px", cursor: "not-allowed" }} 
-                            />
-                        </Tooltip>
-                    ),
-                    isAdmin ? (
-                        <Tooltip title="Hapus Data" key="delete">
-                            <Popconfirm
-                                title="Yakin hapus tujuan ini?"
-                                onConfirm={() => handleDelete(item.id)}
-                                okText="Ya, Hapus"
-                                cancelText="Batal"
-                            >
-                                 <DeleteOutlined style={{ color: "#ff4d4f", fontSize: "18px" }} />
-                            </Popconfirm>
-                        </Tooltip>
-                    ) : (
-                        <Tooltip title="Akses Dibatasi" key="delete-disabled">
-                             <DeleteOutlined 
-                                style={{ color: "#d9d9d9", fontSize: "18px", cursor: "not-allowed" }} 
-                             />
-                        </Tooltip>
-                    )
-                  ]}
-                >
-                  <Card.Meta
-                    avatar={
-                        <div style={{ background: '#fff1b8', padding: '10px', borderRadius: '50%' }}>
-                            <AimOutlined style={{ fontSize: '24px', color: '#d48806' }} />
-                        </div>
-                    }
-                    title={<span style={{ fontSize: "16px", fontWeight: "bold", whiteSpace: "normal" }}>{item.title} {completed && <Tooltip title="Target tabungan sudah tercapai"><CheckCircleFilled style={{ color: '#52c41a', marginLeft: 6 }} /></Tooltip>}</span>}
-                    description={
-                      <div style={{ minHeight: "60px" }}>
-                         <Text type="secondary" ellipsis={{ tooltip: item.description, rows: 2 }}>
-                           {item.description || "Tidak ada deskripsi."}
-                         </Text>
-                      </div>
-                    }
-                  />
-                  
-                  <div style={{ marginTop: "20px" }}>
-                    {completed && <Tag color="success" icon={<CheckCircleFilled />} style={{ marginBottom: 12 }}>DONE — Target tercapai</Tag>}
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#8c8c8c" }}>
-                      <span>Saldo saat ini</span>
-                      <span>Target</span>
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontWeight: "bold", marginBottom: "5px", fontSize: screens.xs ? "14px" : "15px" }}>
-                      <span style={{ color: "#52c41a" }}>{formatRupiah(collected)}</span>
-                      <span>{formatRupiah(target)}</span>
-                    </div>
-                    
-                    <Progress 
-                        percent={parseFloat(percent)} 
-                        status={completed ? "success" : "active"}
-                        strokeColor={{
-                            '0%': '#108ee9',
-                            '100%': '#87d068',
-                        }}
-                    />
-                    <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 8, background: completed ? '#f6ffed' : '#f5f7ff', border: `1px solid ${completed ? '#b7eb8f' : '#d9e2ff'}` }}>
-                      <Text style={{ color: completed ? '#389e0d' : '#595959', fontSize: 13 }}>
-                        {completed ? <>Target sudah terpenuhi. Surplus <b>{formatRupiah(Math.max(collected - target, 0))}</b>.</> : <>Masih kurang <b style={{ color: '#cf1322' }}>{formatRupiah(remaining)}</b> untuk mencapai {formatRupiah(target)}.</>}
-                      </Text>
-                    </div>
-                  </div>
-                </Card>
-              </Col>
-            );
-          })}
-        </Row>
-      )}
-
-      <Modal
-        title={editingItem ? "Edit Tujuan ✏️" : "Tambah Tujuan Baru 🎯"}
-        open={isModalOpen}
-        onOk={handleOk}
-        onCancel={() => setIsModalOpen(false)}
-        okText={editingItem ? "Simpan Perubahan" : "Buat Tujuan"}
-        cancelText="Batal"
-        centered
-        width={screens.xs ? "95%" : 520}
-      >
-        <Form form={form} layout="vertical" name="purposeForm">
-          <Form.Item
-            name="title"
-            label="Nama Tujuan"
-            rules={[{ required: true, message: "Nama tujuan wajib diisi!" }]}
-          >
-            <Input placeholder="Contoh: Investasi Emas, Beli Rumah" prefix={<RocketOutlined />} />
-          </Form.Item>
-
-          <Form.Item
-            name="target_amount" 
-            label="Target Nominal (Rp)"
-            rules={[{ required: true, message: "Target nominal wajib diisi!" }]}
-          >
-             <InputNumber
-                style={{ width: '100%' }}
-                placeholder="Contoh: 100000000"
-                inputMode="numeric"
-                formatter={(value) => value ? `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
-                parser={(value) => value.replace(/Rp\s?|,/g, '')}
-                onKeyPress={(event) => {
-                    if (!/[0-9]/.test(event.key)) {
-                        event.preventDefault();
-                    }
-                }}
-             />
-          </Form.Item>
-
-           <Form.Item
-              name="collected_amount" 
-              label="Saldo Terkumpul Saat Ini"
-              help="Update manual jika ada dana masuk/aset bertambah."
-           >
-              <InputNumber
-                  style={{ width: '100%' }}
-                  placeholder="Contoh: 500000"
-                  inputMode="numeric"
-                  formatter={(value) => value ? `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : ''}
-                  parser={(value) => value.replace(/Rp\s?|,/g, '')}
-                  onKeyPress={(event) => {
-                    if (!/[0-9]/.test(event.key)) {
-                        event.preventDefault();
-                    }
-                  }}
-              />
-           </Form.Item>
-
-          <Form.Item
-            name="description"
-            label="Keterangan / Progress Aset"
-          >
-            <TextArea rows={3} placeholder="Contoh: Sudah beli emas 5 gram..." />
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
-   </div>
-  );
-};
-
-export default Purpose;
+  return <div><HeadNavbar title="Zipal Purpose" icon={<RocketOutlined />} description="Financial Goal Management System" />
+    <main className="financial-page">
+      <div className="page-toolbar"><div><Typography.Title level={2} style={{ margin:0 }}>Financial Goals</Typography.Title><Typography.Text type="secondary">Kelola, pantau, dan prioritaskan tujuan keuangan keluarga.</Typography.Text></div>
+        <Button type="primary" size="large" icon={<PlusOutlined />} disabled={!isAdmin} onClick={openAdd}>Tambah Tujuan</Button></div>
+      <FinancialGoalSummary summary={summary} loading={loading} /><RecoveryModeCard summary={summary} onPlan={() => setPlanOpen(true)} />
+      <Segmented className="goal-filters" value={filter} onChange={setFilter} options={filters} />
+      <section id="goal-list">{loading ? <div style={{ textAlign:'center', padding:60 }}><Spin size="large" /></div> : filtered.length ? <Row gutter={[16,16]}>{filtered.map(goal => <Col xs={24} md={12} lg={8} key={goal.id}><FinancialGoalCard goal={goal} onDetail={openDetail} onEdit={isAdmin ? openEdit : null} /></Col>)}</Row> : <EmptyGoalCategory label={filter === 'ALL' ? 'Financial Goal' : CATEGORIES[filter]?.label} onAdd={openAdd} />}</section>
+    </main>
+    <FinancialGoalDetail open={detailId != null} goal={detail} loading={detailLoading} onClose={() => setDetailId(null)} />
+    <Modal title="Rencana Refill" open={planOpen} onCancel={() => setPlanOpen(false)} footer={null} width={600}>
+      <Alert type="info" showIcon message="Rekomendasi tidak melakukan deposit otomatis" description="Alokasi berikut hanya suggestion berdasarkan kondisi, due date, dan priority goal." style={{ marginBottom:16 }} />
+      <Space.Compact style={{ width:'100%', marginBottom:16 }}><InputNumber value={capacity} onChange={setCapacity} min={1} precision={0} prefix="Rp" placeholder="Kapasitas menabung bulan ini" style={{ width:'100%' }} /><Button type="primary" loading={planLoading} onClick={calculatePlan}>Hitung</Button></Space.Compact>
+      {plan && <><Typography.Text type="secondary">Dialokasikan {money(plan.allocated)} dari {money(plan.capacity)}</Typography.Text><List dataSource={plan.recommendations} locale={{ emptyText:'Belum ada goal yang memerlukan alokasi.' }} renderItem={item => <List.Item extra={<strong>{money(item.allocation)}</strong>}><List.Item.Meta title={`${item.goal_name} · P${item.priority}`} description={item.reasons.join(' · ')} /></List.Item>} /></>}
+    </Modal>
+    <Modal title={editing ? 'Edit Financial Goal' : 'Tambah Financial Goal'} open={formOpen} onCancel={() => setFormOpen(false)} onOk={save} confirmLoading={saving} width={620} okText="Simpan">
+      <Form form={form} layout="vertical" initialValues={defaults}>
+        <Row gutter={16}><Col xs={24} md={14}><Form.Item name="title" label="Nama" rules={[{ required:true }]}><Input /></Form.Item></Col><Col xs={24} md={10}><Form.Item name="category" label="Kategori" rules={[{ required:true }]}><Select options={categoryOptions} /></Form.Item></Col></Row>
+        <Form.Item name="description" label="Deskripsi"><TextArea rows={3} /></Form.Item>
+        <Row gutter={16}><Col xs={24} md={12}><Form.Item name="target_amount" label={category === 'ASSET' ? 'Milestone Target' : 'Target'} rules={[{ required:true }]}><InputNumber min={1} precision={0} style={{ width:'100%' }} prefix="Rp" /></Form.Item></Col>
+          {!editing && <Col xs={24} md={12}><Form.Item name="collected_amount" label="Saldo Awal" help="Dicatat sebagai opening deposit."><InputNumber min={0} precision={0} style={{ width:'100%' }} prefix="Rp" /></Form.Item></Col>}</Row>
+        {(category === 'PLANNED' || category === 'SOCIAL') && <Form.Item name="target_date" label="Target Date (opsional)"><DatePicker style={{ width:'100%' }} /></Form.Item>}
+        {category === 'PROTECTION' && <><Form.Item name="refill_enabled" valuePropName="checked"><Checkbox>Aktifkan refill</Checkbox></Form.Item><Row gutter={16}><Col span={12}><Form.Item name="healthy_threshold" label="Batas sehat"><InputNumber min={.1} max={1} step={.05} style={{ width:'100%' }} /></Form.Item></Col><Col span={12}><Form.Item name="critical_threshold" label="Batas kritis"><InputNumber min={.1} max={1} step={.05} style={{ width:'100%' }} /></Form.Item></Col></Row></>}
+        {category === 'RECURRING' && <Row gutter={16}><Col span={12}><Form.Item name="cycle_type" label="Siklus" rules={[{ required:true }]}><Select options={[{value:'MONTHLY',label:'Bulanan'},{value:'YEARLY',label:'Tahunan'},{value:'CUSTOM',label:'Custom'}]} /></Form.Item></Col><Col span={12}><Form.Item name="next_due_date" label="Periode Berikutnya" rules={[{ required:true }]}><DatePicker style={{ width:'100%' }} /></Form.Item></Col></Row>}
+        <Form.Item name="configured_priority" label="Priority (opsional)"><Select allowClear options={[1,2,3,4,5].map(value => ({ value, label:`P${value} — ${['Critical','High','Medium','Normal','Low'][value-1]}` }))} /></Form.Item>
+        {editing && <Form.Item name="lifecycle_status" label="Lifecycle"><Select options={['ACTIVE','PAUSED','COMPLETED'].map(value => ({ value, label:value }))} /></Form.Item>}
+      </Form>
+    </Modal>
+  </div>;
+}
