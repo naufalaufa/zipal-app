@@ -185,7 +185,7 @@ const DashboardLayout = () => {
 
       <Layout style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
         <Header className="app-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="app-header__balance" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
              <div style={{  padding: '5px 8px', borderRadius: '6px' }}>
                 <WalletOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
              </div>
@@ -203,7 +203,7 @@ const DashboardLayout = () => {
           </div>
           <div className="app-header__actions">
           <ThemeIndicator />
-          <div onClick={showProfileModal} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} >
+          <div className="app-header__profile" onClick={showProfileModal} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} >
             <small style={{ textAlign: 'end', marginBottom: 0, fontWeight: '300', display: collapsed ? 'none' : 'block' }}>
                 Hallo {currentUser.username}👋
             </small>

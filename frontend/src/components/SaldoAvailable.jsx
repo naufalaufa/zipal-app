@@ -43,7 +43,7 @@ const SaldoAvailable = ({ total }) => {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         
-        <span style={{ fontWeight: 'bold', fontSize: '17px' }}>
+        <span style={{ fontWeight: 'bold', fontSize: '17px', color: 'var(--text-main)' }}>
           {isVisible ? formatRupiah(total) : 'Rp **********'}
         </span>
 
