@@ -1,12 +1,14 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import './automaticTheme.css'
 import App from './App'
 import Swal from 'sweetalert2'
+import AutomaticThemeProvider from './AutomaticThemeProvider'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <AutomaticThemeProvider><App /></AutomaticThemeProvider>
   </StrictMode>,
 )
 

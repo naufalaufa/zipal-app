@@ -63,7 +63,7 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
       </div>
 
       {screens.md && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', background:'#f5f5f5', padding:'4px 12px', borderRadius:'8px', border: '1px solid #e8e8e8' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', background:'var(--surface-soft)', padding:'4px 12px', borderRadius:'8px', border: '1px solid var(--line)' }}>
           <Tooltip title="Porsi tunai berdasarkan persentase deposit."><InfoCircleOutlined style={{color: colorHighlight}}/></Tooltip>
           <span>Porsi Tunai: </span>
           <span style={{ fontWeight: 'bold', color: isVisible ? colorHighlight : '#bfbfbf' }}>{isVisible ? formatRupiahSimple(cashShare) : 'Rp **********'}</span>
@@ -140,7 +140,7 @@ const Dashboard = () => {
   useEffect(() => { fetchSaldo(); fetchUserAvatars(); }, [fetchUserAvatars]);
 
   const totalWithdrawCalculated = (dataSaldo.total_deposit_overall || 0) - (dataSaldo.grand_total || 0);
-  const elegantCardStyle = { borderRadius: '8px', border: '1px solid #e8e8e8', height: '100%', display: 'flex', flexDirection: 'column' };
+  const elegantCardStyle = { borderRadius: '8px', border: '1px solid var(--line)', height: '100%', display: 'flex', flexDirection: 'column' };
 
   return (
     <div style={{ paddingBottom: '40px' }}>

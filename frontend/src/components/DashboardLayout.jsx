@@ -5,6 +5,8 @@ import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import Swal from 'sweetalert2'
 import api from '../api';
 import FooterContacts from './FooterContacts';
+import ThemeIndicator from './ThemeIndicator';
+import { useAutomaticTheme } from '../themeContext';
 import { clearSession, getSessionUser } from '../authSession';
 const avatarFor = user => !user.avatar ? null : user.avatar.startsWith('http') ? user.avatar : `${import.meta.env.VITE_API_URL}/public/uploads/${user.avatar}`;
 
@@ -55,6 +57,7 @@ const menuItems = [
 ];
 
 const DashboardLayout = () => {
+  const mode = useAutomaticTheme();
   const [collapsed, setCollapsed] = useState(false);
   const [currentUser, setCurrentUser] = useState(getSessionUser() || { username: 'Guest', role: 'guest' });
   const [avatarUrl, setAvatarUrl] = useState(() => avatarFor(currentUser));
@@ -160,13 +163,13 @@ const DashboardLayout = () => {
 
   return (
     <Layout style={{ height: '100vh', width: '100vw', overflow: 'hidden', display: 'flex' }}>
-      <Sider breakpoint="lg" collapsedWidth="0" onCollapse={(value) => setCollapsed(value)} style={{ position: 'relative', height: '100vh' }}>
-        <div style={{ fontSize: '14px', height: 32, margin: 16, background: 'rgba(255, 255, 255, 0.2)', display: 'grid', placeContent: 'center', placeItems: 'center', color: 'white', borderRadius: '10px' }} >
+      <Sider theme={mode} className="app-sidebar" breakpoint="lg" collapsedWidth="0" onCollapse={(value) => setCollapsed(value)} style={{ position: 'relative', height: '100vh' }}>
+        <div className="app-brand" style={{ fontSize: '14px', height: 32, margin: 16, display: 'grid', placeContent: 'center', placeItems: 'center', borderRadius: '10px' }} >
           <p>Zipal Application 📱</p>
         </div>
         
         <Menu 
-            theme="dark" 
+            theme={mode}
             mode="inline" 
             selectedKeys={[location.pathname]} 
             items={filteredMenu} 
@@ -181,15 +184,15 @@ const DashboardLayout = () => {
       </Sider>
 
       <Layout style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
-        <Header style={{ color: 'white', padding: '0 24px', background: '#001529', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Header className="app-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
              <div style={{  padding: '5px 8px', borderRadius: '6px' }}>
                 <WalletOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
              </div>
              <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
-                <span style={{ fontSize: '10px', color: '#bfbfbf', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cash Available</span>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cash Available</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: '#fff' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--text-main)' }}>
                         {showBalance ? formatRupiah(cashAvailable) : 'Rp **********'}
                     </span>
                     <div onClick={() => setShowBalance(!showBalance)} style={{ cursor: 'pointer', color: '#1890ff', fontSize: '14px', display: 'flex' }}>
@@ -198,11 +201,14 @@ const DashboardLayout = () => {
                 </div>
              </div>
           </div>
+          <div className="app-header__actions">
+          <ThemeIndicator />
           <div onClick={showProfileModal} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} >
             <small style={{ textAlign: 'end', marginBottom: 0, fontWeight: '300', display: collapsed ? 'none' : 'block' }}>
                 Hallo {currentUser.username}👋
             </small>
             <Avatar size="large" src={avatarUrl} icon={!avatarUrl && <UserOutlined />} style={{ backgroundColor: avatarUrl ? 'transparent' : '#1890ff', border: '1px solid white' }} />
+          </div>
           </div>
         </Header>
 

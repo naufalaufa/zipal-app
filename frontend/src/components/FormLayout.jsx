@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Badge, Button, Checkbox, Form, Input, message } from "antd";
+import { Button, Checkbox, Form, Input, message } from "antd";
 import ReCAPTCHA from "react-google-recaptcha";
 import { useNavigate } from "react-router-dom";
 import { startSession } from "../authSession";
 import api from "../api";
 import ForgotPassword from "./ForgotPassword";
+import ThemeIndicator from './ThemeIndicator';
 
 const FormLayout = () => {
   const [loading, setLoading] = useState(false);
@@ -62,8 +63,13 @@ const FormLayout = () => {
   };
 
   return (
-    <div>
-      <Badge.Ribbon text="Zipal 🧑‍🦱👧" />
+    <div className="login-card">
+      <div className="login-theme"><ThemeIndicator /></div>
+      <div className="login-card-header">
+        <span className="login-badge">Zipal · Zihra & Naufal</span>
+        <h2>Selamat datang kembali</h2>
+        <p>Langkah kecil hari ini, masa depan bersama.</p>
+      </div>
       <Form
         layout="vertical"
         className="login-form"
@@ -116,7 +122,7 @@ const FormLayout = () => {
               type="link" 
               onClick={() => setIsModalOpen(true)}
               style={{ 
-                color: "white",
+                color: "var(--accent-text)",
                 textDecoration: "underline"
               }}
             >

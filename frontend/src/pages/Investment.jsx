@@ -44,7 +44,7 @@ const Investment = () => {
             text: 'Anda sedang mengakses halaman Investasi sebagai User. Anda hanya dapat melihat data, tidak dapat melakukan pembelian.',
             confirmButtonText: 'Mengerti',
             confirmButtonColor: '#1890ff',
-            background: '#f0f9ff',
+            background: 'var(--surface-soft)',
             iconColor: '#1890ff'
         });
     } else if (users.role === 'admin') {
@@ -54,7 +54,7 @@ const Investment = () => {
             text: 'Anda sedang mengakses halaman Investasi sebagai Admin. Yuk Berinvestasi 🚀',
             confirmButtonText: 'Mengerti',
             confirmButtonColor: '#1890ff',
-            background: '#f0f9ff',
+            background: 'var(--surface-soft)',
             iconColor: '#1890ff'
         });
     }
@@ -175,7 +175,7 @@ const Investment = () => {
       key: 'date',
       width: 110,
       fixed: 'left',
-      render: (text) => <span style={{ color: '#666', fontSize: '13px' }}><CalendarOutlined style={{ marginRight: '5px' }} />{moment(text).format('DD MMM YY')}</span>
+      render: (text) => <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}><CalendarOutlined style={{ marginRight: '5px' }} />{moment(text).format('DD MMM YY')}</span>
     },
     {
       title: 'Produk',
@@ -399,7 +399,7 @@ const Investment = () => {
                     title={<span><CalculatorOutlined /> Analisis Beban Investasi (Real-Time)</span>} 
                     variant="borderless"
                 >
-                    <h4 style={{ color: '#666', marginBottom: '10px' }}>1. Proporsi Kontribusi Dana</h4>
+                    <h4 style={{ color: 'var(--text-muted)', marginBottom: '10px' }}>1. Proporsi Kontribusi Dana</h4>
                     <Table 
                         columns={columnsAnalysis} 
                         dataSource={dataAnalysis} 
@@ -412,7 +412,7 @@ const Investment = () => {
                     <Divider />
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                        <h4 style={{ color: '#666', margin: 0 }}>2. Rincian Objek Investasi (Barang Terbeli) <UnorderedListOutlined /></h4>
+                        <h4 style={{ color: 'var(--text-muted)', margin: 0 }}>2. Rincian Objek Investasi (Barang Terbeli) <UnorderedListOutlined /></h4>
                         <Tag color="blue">Total: {formatRupiah(totalAssetValue)}</Tag>
                     </div>
                     
@@ -426,7 +426,7 @@ const Investment = () => {
                         locale={{ emptyText: 'Belum ada aset dibeli' }}
                     />
 
-                    <div style={{ marginTop: '15px', color: '#888', fontSize: '12px', fontStyle: 'italic' }}>
+                    <div style={{ marginTop: '15px', color: 'var(--text-muted)', fontSize: '12px', fontStyle: 'italic' }}>
                         * Tabel di atas menunjukkan daftar aset fisik yang dibeli menggunakan dana kontribusi gabungan.
                     </div>
                 </Card>
@@ -443,7 +443,7 @@ const Investment = () => {
         footer={null}
       >
         <div style={{ 
-            background: '#f6ffed', 
+            background: 'var(--surface-soft)',
             border: '1px solid #b7eb8f', 
             padding: '12px', 
             borderRadius: '8px', 
@@ -454,11 +454,11 @@ const Investment = () => {
             alignItems: 'center',
             gap: '5px'
         }}>
-            <span style={{ fontSize: '14px', color: '#555' }}>Dana Cash Tersedia:</span>
+            <span style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Dana Cash Tersedia:</span>
             <span style={{ color: '#52c41a', fontWeight: 'bold', fontSize: '20px' }}>
                 {formatRupiah(cashBalance)}
             </span>
-            <span style={{ fontSize: '11px', color: '#999' }}>*Pastikan nominal tidak melebihi saldo ini</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>*Pastikan nominal tidak melebihi saldo ini</span>
         </div>
 
         <Form layout="vertical" form={form} onFinish={handleInvestSubmit}>
