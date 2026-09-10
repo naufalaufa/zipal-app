@@ -23,7 +23,11 @@ const loadGoals = async (suffix = '', params = []) => {
 };
 const number = value => Number(value);
 const bool = value => value === true || value === 1 || value === '1';
-const fail = (res, error) => { console.error(error); res.status(error.status || 500).json({ message: error.status ? error.message : 'Gagal memproses Financial Goals.' }); };
+const fail = (req, res, error, fallback = 'Gagal memproses Financial Goals.') => {
+    console.error('Financial Goals request failed', { method:req.method, path:req.originalUrl, user_id:req.user?.id,
+        goal_id:req.params?.id, code:error.code, message:error.message, stack:error.stack });
+    res.status(error.status || 500).json({ message:error.status ? error.message : fallback });
+};
 const adminOnly = async (req, res, next) => {
     try {
         const rows = await query('SELECT role FROM users WHERE id=?', [req.user.id]);
@@ -51,10 +55,10 @@ router.get('/goals', async (req, res) => {
         if (req.query.category && validCategory(req.query.category)) { where = ' WHERE category=?'; params.push(req.query.category); }
         const rows = await loadGoals(`${where} ORDER BY configured_priority IS NULL,configured_priority,id`, params);
         res.json({ status: 'success', data: rows.map(deriveGoal) });
-    } catch (error) { fail(res, error); }
+    } catch (error) { fail(req, res, error, 'Gagal memuat Financial Goals.'); }
 });
 
-router.get('/goals/summary', async (_req, res) => {
+router.get('/goals/summary', async (req, res) => {
     try {
         const goals = (await loadGoals()).map(deriveGoal);
         const totalBalance = goals.reduce((sum, goal) => sum + goal.current_amount, 0);
@@ -71,7 +75,7 @@ router.get('/goals/summary', async (_req, res) => {
             protection_health: protectionTarget ? protections.reduce((sum, goal) => sum + Math.min(goal.current_amount, goal.target_amount), 0) / protectionTarget * 100 : null,
             recovery_mode: unhealthy.length > 0, recovery_goal_count: unhealthy.length
         }});
-    } catch (error) { fail(res, error); }
+    } catch (error) { fail(req, res, error, 'Gagal memuat ringkasan Financial Goals.'); }
 });
 
 router.get('/goals/:id', async (req, res, next) => {
@@ -83,7 +87,7 @@ router.get('/goals/:id', async (req, res, next) => {
           COALESCE(SUM(CASE WHEN type='withdraw' THEN amount ELSE 0 END),0) total_withdrawal,MAX(date) last_transaction FROM transactions WHERE goal_id=?`, [req.params.id]);
         const transactions = await query('SELECT id,username,type,amount,date,description FROM transactions WHERE goal_id=? ORDER BY date DESC,id DESC LIMIT 50', [req.params.id]);
         res.json({ status: 'success', data: { ...deriveGoal(rows[0]), ...stats, transactions } });
-    } catch (error) { fail(res, error); }
+    } catch (error) { fail(req, res, error, 'Gagal memuat detail Financial Goal.'); }
 });
 
 router.post('/goals', authenticateToken, adminOnly, validateGoal, async (req, res) => {
@@ -103,7 +107,7 @@ router.post('/goals', authenticateToken, adminOnly, validateGoal, async (req, re
           VALUES (?,'deposit',?,CURRENT_DATE,'Saldo awal goal',?)`, [req.user.username,initial,result.insertId]);
         await connection.commit();
         res.status(201).json({ status: 'success', data: { id: result.insertId }, message: 'Financial goal berhasil dibuat.' });
-    } catch (error) { await connection.rollback(); fail(res, error); } finally { connection.release(); }
+    } catch (error) { await connection.rollback(); fail(req, res, error, 'Gagal membuat Financial Goal.'); } finally { connection.release(); }
 });
 
 router.put('/goals/:id', authenticateToken, adminOnly, validateGoal, async (req, res) => {
@@ -116,7 +120,7 @@ router.put('/goals/:id', authenticateToken, adminOnly, validateGoal, async (req,
          i.next_due_date || null,i.category === CATEGORIES.RECURRING || bool(i.is_recurring),i.category === CATEGORIES.ASSET ? 'CONTINUE' : (i.milestone_behavior || 'STOP'),req.params.id]);
         if (!result.affectedRows) return res.status(404).json({ message: 'Goal tidak ditemukan.' });
         res.json({ status: 'success', message: 'Financial goal berhasil diperbarui.' });
-    } catch (error) { fail(res, error); }
+    } catch (error) { fail(req, res, error, 'Gagal memperbarui Financial Goal.'); }
 });
 
 router.delete('/goals/:id', authenticateToken, adminOnly, async (req, res) => {
@@ -126,7 +130,7 @@ router.delete('/goals/:id', authenticateToken, adminOnly, async (req, res) => {
         res.json({ status: 'success', message: 'Goal berhasil dihapus.' });
     } catch (error) {
         if (error.code === 'ER_ROW_IS_REFERENCED_2') return res.status(409).json({ message: 'Goal memiliki transaksi. Gunakan status Paused atau Completed.' });
-        fail(res, error);
+        fail(req, res, error, 'Gagal menghapus Financial Goal.');
     }
 });
 
@@ -136,7 +140,7 @@ router.post('/goals/refill-recommendation', async (req, res) => {
     try {
         const recommendations = buildRecommendation(await loadGoals(), capacity);
         res.json({ status: 'success', data: { capacity, allocated: recommendations.reduce((sum, item) => sum + item.allocation, 0), recommendations } });
-    } catch (error) { fail(res, error); }
+    } catch (error) { fail(req, res, error, 'Gagal menghitung rekomendasi refill.'); }
 });
 
 router.get('/financial-analytics', async (req, res) => {
@@ -151,7 +155,7 @@ router.get('/financial-analytics', async (req, res) => {
         const trend = monthly.map(row => ({ period:row.period,deposits:number(row.deposits),withdrawals:number(row.withdrawals),net:number(row.deposits)-number(row.withdrawals),balance:running += number(row.deposits)-number(row.withdrawals) }));
         const categories = Object.values(CATEGORIES).map(category => ({ category,amount:goals.filter(goal => goal.category === category).reduce((sum, goal) => sum + goal.current_amount, 0) }));
         res.json({ status:'success', data:{ goals,trend,categories,coverage } });
-    } catch (error) { fail(res, error); }
+    } catch (error) { fail(req, res, error, 'Gagal memuat Financial Analytics.'); }
 });
 
 module.exports = router;

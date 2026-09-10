@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, Button, Checkbox, Col, DatePicker, Form, Input, InputNumber, List, message, Modal, Row, Segmented, Select, Space, Spin, Typography } from 'antd';
+import { Alert, Button, Checkbox, Col, DatePicker, Form, Input, InputNumber, List, message, Modal, Row, Select, Space, Spin, Typography } from 'antd';
 import { PlusOutlined, RocketOutlined } from '@ant-design/icons';
 import { HeadNavbar } from '../components';
 import api from '../api';
-import { CATEGORIES, EmptyGoalCategory, FinancialGoalCard, FinancialGoalDetail, FinancialGoalSummary, money, RecoveryModeCard } from '../features/financialGoals';
+import { CATEGORIES, EmptyGoalCategory, FinancialGoalCard, FinancialGoalDetail, FinancialGoalSummary, money, normalizeFinancialGoal, RecoveryModeCard } from '../features/financialGoals';
 import '../features/financialGoals.css';
 
 const { TextArea } = Input;
@@ -21,24 +21,27 @@ export default function Purpose() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { const [goalRes, summaryRes] = await Promise.all([api.get('/goals'), api.get('/goals/summary')]); setGoals(goalRes.data.data); setSummary(summaryRes.data.data); }
-    catch (error) { message.error(error.response?.data?.message || 'Gagal memuat Financial Goals. Pastikan migration terbaru sudah dijalankan.'); }
+    try { const [goalRes, summaryRes] = await Promise.all([api.get('/goals'), api.get('/goals/summary')]); setGoals((goalRes.data.data || []).map(normalizeFinancialGoal)); setSummary(summaryRes.data.data || {}); }
+    catch (error) { console.error('Financial Goals load failed:', error); message.error('Gagal memuat Financial Goals. Silakan coba lagi.'); }
     finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);
 
   const counts = useMemo(() => goals.reduce((map, goal) => ({ ...map, [goal.category]: (map[goal.category] || 0) + 1 }), {}), [goals]);
   const filtered = filter === 'ALL' ? goals : goals.filter(goal => goal.category === filter);
-  const filters = [{ value:'ALL', label:`Semua ${goals.length}` }, ...Object.entries(CATEGORIES).map(([value, item]) => ({ value, label:<span>{item.icon} {item.short} {counts[value] || 0}</span> }))];
+  const filters = [{ value:'ALL', label:'Semua', count:goals.length }, ...Object.entries(CATEGORIES).map(([value, item]) => ({ value, label:item.short, icon:item.icon, count:counts[value] || 0 }))];
 
   const openAdd = () => { setEditing(null); form.setFieldsValue(defaults); setFormOpen(true); };
   const openEdit = goal => { setEditing(goal); form.setFieldsValue({ ...goal, collected_amount: undefined }); setFormOpen(true); };
   const openDetail = async id => {
     setDetailId(id); setDetail(null); setDetailLoading(true);
-    try { const response = await api.get(`/goals/${id}`); setDetail(response.data.data); }
-    catch (error) { message.error(error.response?.data?.message || 'Gagal memuat detail goal.'); }
+    try { const response = await api.get(`/goals/${id}`); setDetail(normalizeFinancialGoal(response.data.data)); }
+    catch (error) { console.error('Financial Goal detail failed:', { id, error }); message.error(error.response?.data?.message || 'Gagal memuat detail Financial Goal.'); }
     finally { setDetailLoading(false); }
   };
+  const removeGoal = goal => Modal.confirm({ title:'Hapus Financial Goal?', content:`Financial goal ${goal.title} akan dihapus. Data yang terkait mungkin tidak dapat dipulihkan.`,
+    okText:'Hapus', cancelText:'Batal', okButtonProps:{ danger:true }, async onOk() { try { await api.delete(`/goals/${goal.id}`); message.success('Financial goal berhasil dihapus.'); if (detailId === goal.id) setDetailId(null); await load(); }
+      catch (error) { console.error('Financial Goal delete failed:', { id:goal.id, error }); message.error(error.response?.data?.message || 'Gagal menghapus Financial Goal.'); return Promise.reject(error); } } });
   const save = async () => {
     try {
       const values = await form.validateFields(); setSaving(true);
@@ -61,8 +64,8 @@ export default function Purpose() {
       <div className="page-toolbar"><div><Typography.Title level={2} style={{ margin:0 }}>Financial Goals</Typography.Title><Typography.Text type="secondary">Kelola, pantau, dan prioritaskan tujuan keuangan keluarga.</Typography.Text></div>
         <Button type="primary" size="large" icon={<PlusOutlined />} disabled={!isAdmin} onClick={openAdd}>Tambah Tujuan</Button></div>
       <FinancialGoalSummary summary={summary} loading={loading} /><RecoveryModeCard summary={summary} onPlan={() => setPlanOpen(true)} />
-      <Segmented className="goal-filters" value={filter} onChange={setFilter} options={filters} />
-      <section id="goal-list">{loading ? <div style={{ textAlign:'center', padding:60 }}><Spin size="large" /></div> : filtered.length ? <Row gutter={[16,16]}>{filtered.map(goal => <Col xs={24} md={12} lg={8} key={goal.id}><FinancialGoalCard goal={goal} onDetail={openDetail} onEdit={isAdmin ? openEdit : null} /></Col>)}</Row> : <EmptyGoalCategory label={filter === 'ALL' ? 'Financial Goal' : CATEGORIES[filter]?.label} onAdd={openAdd} />}</section>
+      <nav className="goal-filters" aria-label="Filter kategori Financial Goals">{filters.map(item => <Button key={item.value} className={`goal-filter goal-filter-${item.value.toLowerCase()}`} type={filter === item.value ? 'primary' : 'default'} onClick={() => setFilter(item.value)}>{item.icon}<span>{item.label}</span><strong>{item.count}</strong></Button>)}</nav>
+      <section id="goal-list">{loading ? <div style={{ textAlign:'center', padding:60 }}><Spin size="large" /></div> : filtered.length ? <Row gutter={[16,16]}>{filtered.map(goal => <Col xs={24} md={12} lg={8} key={goal.id}><FinancialGoalCard goal={goal} onDetail={openDetail} onEdit={isAdmin ? openEdit : null} onDelete={isAdmin ? removeGoal : null} /></Col>)}</Row> : <EmptyGoalCategory label={filter === 'ALL' ? 'Financial Goal' : CATEGORIES[filter]?.label} onAdd={openAdd} />}</section>
     </main>
     <FinancialGoalDetail open={detailId != null} goal={detail} loading={detailLoading} onClose={() => setDetailId(null)} />
     <Modal title="Rencana Refill" open={planOpen} onCancel={() => setPlanOpen(false)} footer={null} width={600}>
