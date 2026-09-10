@@ -17,11 +17,17 @@ ALTER TABLE financial_goals
     ADD INDEX idx_financial_goals_category (category),
     ADD INDEX idx_financial_goals_status (lifecycle_status);
 
--- Verified mappings for the two rows present during the 2026-09-10 audit.
-UPDATE financial_goals SET category='ASSET', milestone_behavior='CONTINUE'
-WHERE title='Investasi & Tabungan Masa Depan 🪙' AND category IS NULL;
+-- Backfill only legacy/uncategorized rows. Existing user-selected categories are never overwritten.
 UPDATE financial_goals SET category='PROTECTION', refill_enabled=TRUE
-WHERE title='Dana Darurat' AND category IS NULL;
+WHERE category IS NULL AND title IN ('Dana Darurat','Dana Darurat Keluarga','Dana Darurat Sakit Keluarga',
+ 'Dana Darurat Tertimpa Musibah Keluarga','Dana Darurat 6 Bulan','Dana Darurat Perbaikan Kendaraan','Dana Kepergian Keluarga');
+UPDATE financial_goals SET category='PLANNED'
+WHERE category IS NULL AND title IN ('Dana Isi Rumah','Dana Persalinan Anak','Dana Mobilitas Keluarga');
+UPDATE financial_goals SET category='RECURRING', is_recurring=TRUE
+WHERE category IS NULL AND title IN ('Dana Susu Anak 2 Tahun','Dana Jajan Anak','Dana Perkembangan Teknologi/Zaman',
+ 'Uang Kebutuhan Lebaran Sampai Akhir Hayat','Dana Liburan Keluarga Pertahun');
+UPDATE financial_goals SET category='ASSET', milestone_behavior='CONTINUE'
+WHERE category IS NULL AND title IN ('Dana Pendidikan Anak','Investasi & Tabungan Masa Depan','Investasi & Tabungan Masa Depan 🪙');
 UPDATE financial_goals SET target_reached_at=COALESCE(target_reached_at, created_at)
 WHERE target_amount > 0 AND collected_amount >= target_amount;
 

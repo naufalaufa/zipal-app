@@ -1,2 +1,92 @@
-.financial-page{max-width:1280px;margin:0 auto;padding:20px}.page-toolbar{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:20px}.goal-summary{margin-bottom:16px}.goal-summary .ant-card{height:100%;border-color:#edf0f5}.goal-summary .ant-statistic-content{font-size:20px}.recovery-card{margin:16px 0;border-radius:10px}.goal-filters{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}.goal-card{height:100%;border:1px solid #edf0f5;border-radius:12px}.goal-card .ant-card-body{padding:16px}.goal-card-head{display:flex;gap:12px;align-items:flex-start}.goal-icon{width:38px;height:38px;display:grid;place-items:center;border-radius:10px;background:#f0f6ff;color:#1677ff;font-size:19px;flex:none}.goal-title-wrap{min-width:0;display:flex;gap:6px;flex-direction:column}.goal-title{line-height:1.35}.goal-money{display:flex;justify-content:space-between;align-items:end;margin-top:16px}.goal-money strong{font-size:18px}.goal-money span{font-size:12px;color:#8c8c8c}.goal-actions{display:flex;align-items:center;gap:6px;margin-top:14px}.goal-actions .ant-tag{margin-left:auto}.goal-drawer .ant-drawer-body{padding:20px}.analytics-grid .ant-card{height:100%;border-color:#edf0f5}.chart-box{height:300px;position:relative}.coverage-note{margin-bottom:16px}.insight-list .ant-list-item{padding-inline:0}
-@media(max-width:575px){.financial-page{padding:14px}.page-toolbar{flex-direction:column}.page-toolbar .ant-btn{width:100%}.goal-summary .ant-statistic-content{font-size:16px}.goal-money{align-items:flex-start;flex-direction:column}.goal-drawer .ant-drawer-content-wrapper{width:100%!important}.chart-box{height:250px}}
+.financial-page { width:100%; max-width:1280px; margin:0 auto; padding:20px; overflow-x:clip; }
+.page-toolbar { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:20px; }
+.goal-summary { margin-bottom:16px; }
+.goal-summary .ant-card { height:100%; border-color:#edf0f5; }
+.goal-summary .ant-statistic-content { font-size:20px; overflow-wrap:anywhere; }
+.recovery-card { margin:16px 0; border-radius:10px; }
+.goal-filters { display:flex; gap:8px; flex-wrap:wrap; width:100%; margin:20px 0; }
+.goal-filter { display:inline-flex; align-items:center; justify-content:center; gap:6px; border-radius:999px; }
+.goal-filter strong { font-size:11px; line-height:18px; min-width:18px; padding:0 5px; border-radius:10px; background:rgba(0,0,0,.06); }
+.goal-filter.ant-btn-primary strong { background:rgba(255,255,255,.2); }
+.goal-filter-protection:not(.ant-btn-primary) { color:#0958d9; border-color:#91caff; background:#e6f4ff; }
+.goal-filter-protection.ant-btn-primary { border-color:#1677ff; background:#1677ff; }
+.goal-filter-planned:not(.ant-btn-primary) { color:#1d39c4; border-color:#adc6ff; background:#f0f5ff; }
+.goal-filter-planned.ant-btn-primary { border-color:#2f54eb; background:#2f54eb; }
+.goal-filter-recurring:not(.ant-btn-primary) { color:#08979c; border-color:#87e8de; background:#e6fffb; }
+.goal-filter-recurring.ant-btn-primary { border-color:#08979c; background:#08979c; }
+.goal-filter-asset:not(.ant-btn-primary) { color:#389e0d; border-color:#b7eb8f; background:#f6ffed; }
+.goal-filter-asset.ant-btn-primary { border-color:#389e0d; background:#389e0d; }
+.goal-filter-social:not(.ant-btn-primary) { color:#c41d7f; border-color:#ffadd2; background:#fff0f6; }
+.goal-filter-social.ant-btn-primary { border-color:#c41d7f; background:#c41d7f; }
+.goal-card { height:100%; border:1px solid #edf0f5; border-radius:12px; overflow:hidden; }
+.goal-card-protection { border-top:3px solid #1677ff; }
+.goal-card-planned { border-top:3px solid #597ef7; }
+.goal-card-recurring { border-top:3px solid #13c2c2; }
+.goal-card-asset { border-top:3px solid #52c41a; }
+.goal-card-social { border-top:3px solid #eb2f96; }
+.goal-card .ant-card-body { padding:16px; }
+.goal-card-head { display:flex; gap:12px; align-items:flex-start; }
+.goal-icon { width:38px; height:38px; display:grid; place-items:center; border-radius:10px; background:#f0f6ff; color:#1677ff; font-size:19px; flex:none; }
+.goal-card-planned .goal-icon { color:#2f54eb; background:#f0f5ff; }
+.goal-card-recurring .goal-icon { color:#08979c; background:#e6fffb; }
+.goal-card-asset .goal-icon { color:#389e0d; background:#f6ffed; }
+.goal-card-social .goal-icon { color:#c41d7f; background:#fff0f6; }
+.goal-title-wrap { min-width:0; display:flex; gap:6px; flex-direction:column; }
+.goal-title { line-height:1.35; overflow-wrap:anywhere; }
+.goal-money { display:flex; justify-content:space-between; align-items:end; gap:8px; margin-top:16px; }
+.goal-money strong { font-size:18px; overflow-wrap:anywhere; }
+.goal-money span { font-size:12px; color:#8c8c8c; text-align:right; }
+.goal-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:14px; }
+.goal-action-edit { color:#0958d9 !important; border-color:#91caff !important; background:#e6f4ff !important; }
+.goal-action-edit:hover { color:#fff !important; border-color:#1677ff !important; background:#1677ff !important; }
+.goal-action-delete { color:#cf1322 !important; border-color:#ffa39e !important; background:#fff1f0 !important; }
+.goal-action-delete:hover { color:#fff !important; border-color:#ff4d4f !important; background:#ff4d4f !important; }
+.goal-priority { margin-left:auto; margin-inline-end:0; }
+.goal-drawer .ant-drawer-body { padding:20px; overflow-x:hidden; }
+.goal-descriptions .ant-descriptions-item-label { white-space:normal; }
+.goal-descriptions .ant-descriptions-item-content { min-width:0; overflow-wrap:normal; word-break:normal; }
+.analytics-grid .ant-card { height:100%; border-color:#edf0f5; min-width:0; }
+.analytics-grid .ant-list-item { gap:8px; min-width:0; }
+.analytics-grid .ant-list-item-meta { min-width:0; }
+.chart-box { height:300px; position:relative; min-width:0; }
+.coverage-note { margin-bottom:16px; }
+.insight-list .ant-list-item { padding-inline:0; }
+@media (max-width:991px) { .financial-page{padding:18px} .chart-box{height:280px} }
+@media (max-width:767px) {
+  .page-toolbar { flex-direction:column; align-items:stretch; }
+  .page-toolbar > .ant-segmented { width:100%; overflow-x:auto; }
+  .goal-descriptions .ant-descriptions-view { table-layout:auto; }
+}
+@media (max-width:575px) {
+  .financial-page { padding:12px; }
+  .page-toolbar .ant-btn { width:100%; }
+  .goal-summary { margin-inline:-4px; }
+  .goal-summary > .ant-col { padding-inline:4px !important; }
+  .goal-summary .ant-card-body { padding:12px 10px; }
+  .goal-summary .ant-statistic-title { min-height:34px; font-size:12px; }
+  .goal-summary .ant-statistic-content { font-size:15px; }
+  .recovery-card .ant-alert { padding:12px; }
+  .goal-filters { gap:6px; }
+  .goal-filter { flex:1 1 calc(50% - 6px); min-width:0; padding-inline:8px; }
+  .goal-filter:first-child { flex-basis:100%; }
+  .goal-card .ant-card-body { padding:14px; }
+  .goal-money { align-items:flex-start; flex-direction:column; }
+  .goal-money span { text-align:left; }
+  .goal-actions .ant-btn { flex:1 1 auto; }
+  .goal-priority { flex:none; }
+  .goal-drawer .ant-drawer-content-wrapper { width:100% !important; }
+  .goal-drawer .ant-drawer-body { padding:14px; }
+  .goal-drawer .ant-card-body { padding:14px; }
+  .goal-drawer .ant-typography { overflow-wrap:anywhere; }
+  .goal-descriptions .ant-descriptions-item-label { width:42%; min-width:110px; }
+  .goal-descriptions .ant-descriptions-item-content { width:58%; }
+  .chart-box { height:240px; }
+  .analytics-grid .ant-card-body { padding:14px; }
+}
+@media (max-width:359px) {
+  .financial-page { padding:10px; }
+  .goal-filter { flex-basis:100%; }
+  .goal-actions .ant-btn { flex:1 1 calc(50% - 6px); }
+  .goal-priority { margin-left:0; }
+  .goal-descriptions .ant-descriptions-item-label { min-width:92px; }
+}

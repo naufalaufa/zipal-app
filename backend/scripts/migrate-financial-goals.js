@@ -12,6 +12,15 @@ const columns = {
     milestone_behavior: "ENUM('STOP','CONTINUE') NOT NULL DEFAULT 'STOP' AFTER is_recurring",
     updated_at: 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at'
 };
+const categoryMappings = {
+    PROTECTION: ['Dana Darurat', 'Dana Darurat Keluarga', 'Dana Darurat Sakit Keluarga', 'Dana Darurat Tertimpa Musibah Keluarga',
+        'Dana Darurat 6 Bulan', 'Dana Darurat Perbaikan Kendaraan', 'Dana Kepergian Keluarga'],
+    PLANNED: ['Dana Isi Rumah', 'Dana Persalinan Anak', 'Dana Mobilitas Keluarga'],
+    RECURRING: ['Dana Susu Anak 2 Tahun', 'Dana Jajan Anak', 'Dana Perkembangan Teknologi/Zaman',
+        'Uang Kebutuhan Lebaran Sampai Akhir Hayat', 'Dana Liburan Keluarga Pertahun'],
+    ASSET: ['Dana Pendidikan Anak', 'Investasi & Tabungan Masa Depan', 'Investasi & Tabungan Masa Depan 🪙'],
+    SOCIAL: []
+};
 
 async function main() {
     const connection = await mysql.createConnection({ host:process.env.DB_HOST,user:process.env.DB_USER,password:process.env.DB_PASSWORD,
@@ -25,12 +34,22 @@ async function main() {
             if (!indexes.length) await connection.query(`ALTER TABLE financial_goals ADD INDEX ${name} (${column})`);
         }
         await connection.beginTransaction();
-        await connection.query("UPDATE financial_goals SET category='ASSET',milestone_behavior='CONTINUE' WHERE title='Investasi & Tabungan Masa Depan 🪙' AND category IS NULL");
-        await connection.query("UPDATE financial_goals SET category='PROTECTION',refill_enabled=TRUE WHERE title='Dana Darurat' AND category IS NULL");
+        const mapped = {};
+        for (const [category, titles] of Object.entries(categoryMappings)) {
+            if (!titles.length) { mapped[category] = 0; continue; }
+            const placeholders = titles.map(() => '?').join(',');
+            const [result] = await connection.query(`UPDATE financial_goals SET category=?,
+                refill_enabled=CASE WHEN ?='PROTECTION' THEN TRUE ELSE refill_enabled END,
+                is_recurring=CASE WHEN ?='RECURRING' THEN TRUE ELSE is_recurring END,
+                milestone_behavior=CASE WHEN ?='ASSET' THEN 'CONTINUE' ELSE milestone_behavior END
+                WHERE category IS NULL AND title IN (${placeholders})`, [category, category, category, category, ...titles]);
+            mapped[category] = result.affectedRows;
+        }
         await connection.query('UPDATE financial_goals SET target_reached_at=COALESCE(target_reached_at,created_at) WHERE target_amount>0 AND collected_amount>=target_amount');
         const [unknown] = await connection.query('SELECT id,title FROM financial_goals WHERE category IS NULL');
         await connection.commit();
-        console.log(JSON.stringify({ status:'success', requires_manual_mapping:unknown }, null, 2));
+        const [counts] = await connection.query('SELECT category,COUNT(*) count FROM financial_goals GROUP BY category ORDER BY category');
+        console.log(JSON.stringify({ status:'success', mapped, counts, requires_manual_mapping:unknown }, null, 2));
     } catch (error) { try { await connection.rollback(); } catch (_rollbackError) { /* no transaction yet */ } throw error; }
     finally { await connection.end(); }
 }

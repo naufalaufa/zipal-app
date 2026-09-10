@@ -5,7 +5,7 @@ import { Chart as ChartJS, ArcElement, BarElement, CategoryScale, Filler, Legend
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { HeadNavbar } from '../components';
 import api from '../api';
-import { CATEGORIES, GoalStatusBadge, money } from '../features/financialGoals';
+import { CATEGORIES, clampPercent, GoalStatusBadge, money, normalizeFinancialGoal, safeNumber } from '../features/financialGoals';
 import '../features/financialGoals.css';
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, Filler, Legend, LineElement, LinearScale, PointElement, Tooltip);
@@ -14,13 +14,13 @@ const chartOptions = { responsive:true, maintainAspectRatio:false, plugins:{ leg
 
 export default function FinancialAnalytics() {
   const [period, setPeriod] = useState('6M'); const [data, setData] = useState({ goals:[], trend:[], categories:[], coverage:{} }); const [loading, setLoading] = useState(true); const [error, setError] = useState('');
-  const load = useCallback(async () => { setLoading(true); setError(''); try { const response = await api.get('/financial-analytics', { params:{ period } }); setData(response.data.data); } catch (e) { setError(e.response?.data?.message || 'Gagal memuat analytics.'); } finally { setLoading(false); } }, [period]);
+  const load = useCallback(async () => { setLoading(true); setError(''); try { const response = await api.get('/financial-analytics', { params:{ period } }); const raw=response.data.data || {}; setData({ goals:(raw.goals || []).map(normalizeFinancialGoal), trend:Array.isArray(raw.trend)?raw.trend.map(row=>({...row,deposits:safeNumber(row.deposits),withdrawals:safeNumber(row.withdrawals),net:safeNumber(row.net),balance:safeNumber(row.balance)})):[], categories:Array.isArray(raw.categories)?raw.categories.map(item=>({...item,amount:safeNumber(item.amount)})):[], coverage:raw.coverage || {} }); } catch (e) { console.error('Financial Analytics load failed:', e); setError('Gagal memuat Financial Analytics. Silakan coba lagi.'); } finally { setLoading(false); } }, [period]);
   useEffect(() => { load(); }, [load]);
   const metrics = useMemo(() => {
     const balance = data.goals.reduce((sum,g) => sum + g.current_amount,0); const target = data.goals.reduce((sum,g) => sum + g.target_amount,0);
     const deposits = data.trend.reduce((sum,row) => sum + row.deposits,0); const withdrawals = data.trend.reduce((sum,row) => sum + row.withdrawals,0);
     const protections = data.goals.filter(g => g.category === 'PROTECTION'); const protectionTarget = protections.reduce((sum,g) => sum + g.target_amount,0);
-    const protectionHealth = protectionTarget ? protections.reduce((sum,g) => sum + Math.min(g.current_amount,g.target_amount),0) / protectionTarget * 100 : null;
+    const protectionHealth = protectionTarget ? clampPercent(protections.reduce((sum,g) => sum + Math.min(g.current_amount,g.target_amount),0) / protectionTarget * 100) : 0;
     return { balance,target,deposits,withdrawals,net:deposits-withdrawals,progress:target ? balance/target*100:0,protectionHealth,
       refill:data.goals.filter(g => g.effective_status === 'NEEDS_REFILL'),completed:data.goals.filter(g => ['COMPLETED','TARGET_REACHED'].includes(g.effective_status)) };
   }, [data]);

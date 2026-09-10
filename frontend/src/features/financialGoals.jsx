@@ -9,7 +9,14 @@ export const CATEGORIES = {
   ASSET: { label: 'Aset & Masa Depan', short: 'Aset', icon: <RiseOutlined />, color: 'green' },
   SOCIAL: { label: 'Sosial & Keluarga', short: 'Sosial', icon: <HeartOutlined />, color: 'magenta' }
 };
-export const money = value => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value) || 0);
+export const getGoalCategoryMeta = category => CATEGORIES[category] || { label:'Belum dikategorikan', short:'Belum dikategorikan', icon:<AimOutlined />, color:'default' };
+export const safeNumber = value => Number.isFinite(Number(value)) ? Number(value) : 0;
+export const clampPercent = value => Math.min(100, Math.max(0, safeNumber(value)));
+export const normalizeFinancialGoal = goal => ({ ...goal, id:safeNumber(goal?.id), title:goal?.title || '', category:CATEGORIES[goal?.category] ? goal.category : 'UNKNOWN',
+  current_amount:safeNumber(goal?.current_amount ?? goal?.collected_amount), target_amount:safeNumber(goal?.target_amount), progress:safeNumber(goal?.progress),
+  remaining_amount:safeNumber(goal?.remaining_amount), surplus_amount:safeNumber(goal?.surplus_amount), refill_deficit:safeNumber(goal?.refill_deficit),
+  effective_priority:safeNumber(goal?.effective_priority) || 4, effective_status:goal?.effective_status || 'ACTIVE', transactions:Array.isArray(goal?.transactions) ? goal.transactions : [] });
+export const money = value => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(safeNumber(value));
 export const dateText = value => value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value)) : '—';
 
 const statusMeta = {
@@ -17,7 +24,7 @@ const statusMeta = {
   TARGET_REACHED: ['Target Reached', 'success'], COMPLETED: ['Completed', 'success'], PAUSED: ['Paused', 'default']
 };
 export function GoalStatusBadge({ status }) { const item = statusMeta[status] || [status, 'default']; return <Tag color={item[1]}>{item[0]}</Tag>; }
-export function GoalCategoryBadge({ category }) { const item = CATEGORIES[category]; return item ? <Tag color={item.color} icon={item.icon}>{item.short}</Tag> : <Tag>Belum dikategorikan</Tag>; }
+export function GoalCategoryBadge({ category }) { const item = getGoalCategoryMeta(category); return <Tag color={item.color} icon={item.icon}>{item.label}</Tag>; }
 
 export function FinancialGoalSummary({ summary, loading }) {
   const cards = [
@@ -37,9 +44,9 @@ export function RecoveryModeCard({ summary, onPlan }) {
       <strong>Total refill {money(summary.total_refill_deficit)}</strong><Button type="link" onClick={onPlan} style={{ padding: 0 }}>Lihat Rencana Refill</Button></Space>} />;
 }
 
-export function FinancialGoalCard({ goal, onDetail, onEdit }) {
-  const category = CATEGORIES[goal.category]; const capped = Math.min(Number(goal.progress) || 0, 100);
-  return <Card hoverable className="goal-card" onClick={() => onDetail(goal.id)}>
+export function FinancialGoalCard({ goal, onDetail, onEdit, onDelete }) {
+  const category = getGoalCategoryMeta(goal.category); const capped = clampPercent(goal.progress);
+  return <Card hoverable className={`goal-card goal-card-${String(goal.category).toLowerCase()}`} onClick={() => onDetail(goal.id)}>
     <div className="goal-card-head"><div className="goal-icon">{category?.icon || <AimOutlined />}</div><div className="goal-title-wrap">
       <Typography.Text strong className="goal-title">{goal.title}</Typography.Text><Space size={[0, 4]} wrap><GoalCategoryBadge category={goal.category} /><GoalStatusBadge status={goal.effective_status} /></Space>
     </div></div>
@@ -48,8 +55,9 @@ export function FinancialGoalCard({ goal, onDetail, onEdit }) {
     <Typography.Text type={goal.refill_deficit > 0 ? 'warning' : 'secondary'}>
       {goal.refill_deficit > 0 ? `Perlu refill ${money(goal.refill_deficit)}` : goal.surplus_amount > 0 ? `Surplus ${money(goal.surplus_amount)}` : `Kurang ${money(goal.remaining_amount)}`}
     </Typography.Text>
-    <div className="goal-actions"><Button size="small" onClick={event => { event.stopPropagation(); onDetail(goal.id); }}>Detail</Button>
-      {onEdit && <Button size="small" type="text" onClick={event => { event.stopPropagation(); onEdit(goal); }}>Edit</Button>}<Tag>P{goal.effective_priority}</Tag></div>
+    <div className="goal-actions"><Button className="goal-action-detail" size="small" onClick={event => { event.stopPropagation(); onDetail(goal.id); }}>Detail</Button>
+      {onEdit && <Button className="goal-action-edit" size="small" onClick={event => { event.stopPropagation(); onEdit(goal); }}>Edit</Button>}
+      {onDelete && <Button className="goal-action-delete" size="small" danger onClick={event => { event.stopPropagation(); onDelete(goal); }}>Delete</Button>}<Tag className="goal-priority">P{goal.effective_priority}</Tag></div>
   </Card>;
 }
 
@@ -59,12 +67,13 @@ export function FinancialGoalDetail({ open, loading, goal, onClose }) {
     {loading ? <Skeleton active /> : !goal ? <Empty description="Detail tidak tersedia" /> : <Space direction="vertical" size="large" style={{ width: '100%' }}>
       <div><Typography.Title level={3} style={{ marginBottom: 8 }}>{goal.title}</Typography.Title><Space wrap><GoalCategoryBadge category={goal.category} /><GoalStatusBadge status={goal.effective_status} /><Tag>P{goal.effective_priority}</Tag></Space></div>
       <Card size="small"><Typography.Text type="secondary">Saldo saat ini</Typography.Text><Typography.Title level={2}>{money(goal.current_amount)}</Typography.Title>
-        <Progress percent={Math.min(goal.progress, 100)} format={() => `${Number(goal.progress).toFixed(1)}%`} />
+        <Progress percent={clampPercent(goal.progress)} format={() => `${safeNumber(goal.progress).toFixed(1)}%`} />
         {goal.refill_deficit > 0 && <Alert type="warning" showIcon message={`Perlu refill ${money(goal.refill_deficit)} untuk kembali ke saldo ideal.`} />}</Card>
-      <Descriptions column={2} size="small" bordered items={[
+      <Descriptions className="goal-descriptions" column={{ xs:1, sm:1, md:2 }} size="small" bordered items={[
         { key:'target',label:'Target',children:money(goal.target_amount) },{ key:'remaining',label:'Remaining',children:money(goal.remaining_amount) },
         { key:'deposit',label:'Total deposit',children:money(goal.total_deposit) },{ key:'withdraw',label:'Total withdrawal',children:money(goal.total_withdrawal) },
         { key:'targetDate',label:'Target date',children:dateText(goal.target_date) },{ key:'created',label:'Dibuat',children:dateText(goal.created_at) },
+        { key:'updated',label:'Terakhir diperbarui',children:dateText(goal.updated_at) },{ key:'priority',label:'Priority',children:`P${goal.effective_priority || 4}` },
         { key:'last',label:'Transaksi terakhir',children:dateText(goal.last_transaction) },{ key:'monthly',label:'Rekomendasi/bulan',children:recommended ? money(recommended) : 'Butuh target date' }
       ]} />
       <div><Typography.Title level={5}>Deskripsi</Typography.Title><Typography.Paragraph type="secondary">{goal.description || 'Belum ada deskripsi.'}</Typography.Paragraph></div>
