@@ -3,6 +3,7 @@ const template = require('../data/agreementTemplate.json');
 
 let agreementPromise;
 let transactionPromise;
+let financialGoalPromise;
 const ensureAgreementSchema = pool => {
     if (agreementPromise) return agreementPromise;
     agreementPromise = (async () => {
@@ -49,4 +50,37 @@ const ensureTransactionGoalSchema = pool => {
     return transactionPromise;
 };
 
-module.exports = { ensureAgreementSchema, ensureTransactionGoalSchema };
+const ensureFinancialGoalSchema = pool => {
+    if (financialGoalPromise) return financialGoalPromise;
+    financialGoalPromise = (async () => {
+        const db = pool.promise();
+        const definitions = {
+            category: "ENUM('PROTECTION','PLANNED','RECURRING','ASSET','SOCIAL') NULL",
+            lifecycle_status: "ENUM('ACTIVE','PAUSED','COMPLETED') NOT NULL DEFAULT 'ACTIVE'",
+            configured_priority: 'TINYINT UNSIGNED NULL', target_date: 'DATE NULL',
+            refill_enabled: 'BOOLEAN NOT NULL DEFAULT FALSE', healthy_threshold: 'DECIMAL(4,3) NOT NULL DEFAULT 0.800',
+            critical_threshold: 'DECIMAL(4,3) NOT NULL DEFAULT 0.500', target_reached_at: 'DATETIME NULL',
+            cycle_type: "ENUM('MONTHLY','YEARLY','CUSTOM') NULL", cycle_interval: 'SMALLINT UNSIGNED NULL', next_due_date: 'DATE NULL',
+            is_recurring: 'BOOLEAN NOT NULL DEFAULT FALSE', milestone_behavior: "ENUM('STOP','CONTINUE') NOT NULL DEFAULT 'STOP'",
+            updated_at: 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'
+        };
+        const [columns] = await db.query("SELECT column_name FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='financial_goals'");
+        const existing = new Set(columns.map(row => row.COLUMN_NAME));
+        const missing = Object.entries(definitions).filter(([name]) => !existing.has(name));
+        if (missing.length) await db.query(`ALTER TABLE financial_goals ${missing.map(([name, definition]) => `ADD COLUMN ${name} ${definition}`).join(', ')}`);
+        const { LEGACY_CATEGORY_MAPPINGS } = require('../domain/financialGoals');
+        for (const [category, titles] of Object.entries(LEGACY_CATEGORY_MAPPINGS)) {
+            if (!titles.length) continue;
+            const placeholders = titles.map(() => '?').join(',');
+            await db.query(`UPDATE financial_goals SET category=?,
+                refill_enabled=CASE WHEN ?='PROTECTION' THEN TRUE ELSE refill_enabled END,
+                is_recurring=CASE WHEN ?='RECURRING' THEN TRUE ELSE is_recurring END,
+                milestone_behavior=CASE WHEN ?='ASSET' THEN 'CONTINUE' ELSE milestone_behavior END
+                WHERE category IS NULL AND title IN (${placeholders})`, [category, category, category, category, ...titles]);
+        }
+        await db.query('UPDATE financial_goals SET target_reached_at=COALESCE(target_reached_at,created_at) WHERE target_amount>0 AND collected_amount>=target_amount');
+    })().catch(error => { financialGoalPromise = undefined; throw error; });
+    return financialGoalPromise;
+};
+
+module.exports = { ensureAgreementSchema, ensureTransactionGoalSchema, ensureFinancialGoalSchema };

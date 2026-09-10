@@ -1,5 +1,6 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const mysql = require('mysql2/promise');
+const { LEGACY_CATEGORY_MAPPINGS: categoryMappings } = require('../domain/financialGoals');
 
 const columns = {
     category: "ENUM('PROTECTION','PLANNED','RECURRING','ASSET','SOCIAL') NULL AFTER description",
@@ -12,16 +13,6 @@ const columns = {
     milestone_behavior: "ENUM('STOP','CONTINUE') NOT NULL DEFAULT 'STOP' AFTER is_recurring",
     updated_at: 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at'
 };
-const categoryMappings = {
-    PROTECTION: ['Dana Darurat', 'Dana Darurat Keluarga', 'Dana Darurat Sakit Keluarga', 'Dana Darurat Tertimpa Musibah Keluarga',
-        'Dana Darurat 6 Bulan', 'Dana Darurat Perbaikan Kendaraan', 'Dana Kepergian Keluarga'],
-    PLANNED: ['Dana Isi Rumah', 'Dana Persalinan Anak', 'Dana Mobilitas Keluarga'],
-    RECURRING: ['Dana Susu Anak 2 Tahun', 'Dana Jajan Anak', 'Dana Perkembangan Teknologi/Zaman',
-        'Uang Kebutuhan Lebaran Sampai Akhir Hayat', 'Dana Liburan Keluarga Pertahun'],
-    ASSET: ['Dana Pendidikan Anak', 'Investasi & Tabungan Masa Depan', 'Investasi & Tabungan Masa Depan 🪙'],
-    SOCIAL: []
-};
-
 async function main() {
     const connection = await mysql.createConnection({ host:process.env.DB_HOST,user:process.env.DB_USER,password:process.env.DB_PASSWORD,
         database:process.env.DB_NAME,port:process.env.DB_PORT||3306,ssl:process.env.DB_SSL==='true'?{rejectUnauthorized:false}:undefined });

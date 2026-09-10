@@ -3,6 +3,15 @@ const CATEGORIES = Object.freeze({
 });
 const LIFECYCLE = Object.freeze({ ACTIVE: 'ACTIVE', PAUSED: 'PAUSED', COMPLETED: 'COMPLETED' });
 const PRIORITIES = Object.freeze({ CRITICAL: 1, HIGH: 2, MEDIUM: 3, NORMAL: 4, LOW: 5 });
+const LEGACY_CATEGORY_MAPPINGS = Object.freeze({
+    PROTECTION: ['Dana Darurat', 'Dana Darurat Keluarga', 'Dana Darurat Sakit Keluarga', 'Dana Darurat Tertimpa Musibah Keluarga',
+        'Dana Darurat 6 Bulan', 'Dana Darurat Perbaikan Kendaraan', 'Dana Kepergian Keluarga'],
+    PLANNED: ['Dana Isi Rumah', 'Dana Persalinan Anak', 'Dana Mobilitas Keluarga'],
+    RECURRING: ['Dana Susu Anak 2 Tahun', 'Dana Jajan Anak', 'Dana Perkembangan Teknologi/Zaman', 'Dana Perkembangan Teknologi / Zaman',
+        'Uang Kebutuhan Lebaran Sampai Akhir Hayat', 'Dana Liburan Keluarga Pertahun'],
+    ASSET: ['Dana Pendidikan Anak', 'Investasi & Tabungan Masa Depan', 'Investasi & Tabungan Masa Depan 🪙'],
+    SOCIAL: []
+});
 const validCategory = value => Object.values(CATEGORIES).includes(value);
 
 const money = value => Math.max(Number(value) || 0, 0);
@@ -57,4 +66,4 @@ function buildRecommendation(goals, capacity) {
         }).filter(item => item.allocation > 0);
 }
 
-module.exports = { CATEGORIES, LIFECYCLE, PRIORITIES, validCategory, deriveGoal, buildRecommendation };
+module.exports = { CATEGORIES, LIFECYCLE, PRIORITIES, LEGACY_CATEGORY_MAPPINGS, validCategory, deriveGoal, buildRecommendation };

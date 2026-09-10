@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../config/db');
 const authenticateToken = require('../middleware/auth');
 const { CATEGORIES, validCategory, deriveGoal, buildRecommendation } = require('../domain/financialGoals');
+const { ensureFinancialGoalSchema, ensureTransactionGoalSchema } = require('../services/productionSchema');
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params).then(([rows]) => rows);
 const goalSelect = `SELECT id,title,target_amount,collected_amount,description,category,lifecycle_status,configured_priority,target_date,
@@ -23,6 +24,16 @@ const loadGoals = async (suffix = '', params = []) => {
 };
 const number = value => Number(value);
 const bool = value => value === true || value === 1 || value === '1';
+const prepareSchema = async (includeTransactions = false) => {
+    try {
+        await ensureFinancialGoalSchema(db);
+        if (includeTransactions) await ensureTransactionGoalSchema(db);
+        return true;
+    } catch (error) {
+        console.error('Financial Goals schema preparation failed; using compatibility mode', { code:error.code, message:error.message, stack:error.stack });
+        return false;
+    }
+};
 const fail = (req, res, error, fallback = 'Gagal memproses Financial Goals.') => {
     console.error('Financial Goals request failed', { method:req.method, path:req.originalUrl, user_id:req.user?.id,
         goal_id:req.params?.id, code:error.code, message:error.message, stack:error.stack });
@@ -51,6 +62,7 @@ const validateGoal = (req, res, next) => {
 
 router.get('/goals', async (req, res) => {
     try {
+        await prepareSchema();
         const params = []; let where = '';
         if (req.query.category && validCategory(req.query.category)) { where = ' WHERE category=?'; params.push(req.query.category); }
         const rows = await loadGoals(`${where} ORDER BY configured_priority IS NULL,configured_priority,id`, params);
@@ -60,6 +72,7 @@ router.get('/goals', async (req, res) => {
 
 router.get('/goals/summary', async (req, res) => {
     try {
+        await prepareSchema();
         const goals = (await loadGoals()).map(deriveGoal);
         const totalBalance = goals.reduce((sum, goal) => sum + goal.current_amount, 0);
         const totalTarget = goals.reduce((sum, goal) => sum + goal.target_amount, 0);
@@ -81,16 +94,21 @@ router.get('/goals/summary', async (req, res) => {
 router.get('/goals/:id', async (req, res, next) => {
     if (!/^\d+$/.test(req.params.id)) return next();
     try {
+        await prepareSchema(true);
         const rows = await loadGoals(' WHERE id=?', [req.params.id]);
         if (!rows.length) return res.status(404).json({ message: 'Goal tidak ditemukan.' });
-        const [stats] = await query(`SELECT COUNT(*) transaction_count,COALESCE(SUM(CASE WHEN type='deposit' THEN amount ELSE 0 END),0) total_deposit,
-          COALESCE(SUM(CASE WHEN type='withdraw' THEN amount ELSE 0 END),0) total_withdrawal,MAX(date) last_transaction FROM transactions WHERE goal_id=?`, [req.params.id]);
-        const transactions = await query('SELECT id,username,type,amount,date,description FROM transactions WHERE goal_id=? ORDER BY date DESC,id DESC LIMIT 50', [req.params.id]);
+        let stats = { transaction_count:0, total_deposit:0, total_withdrawal:0, last_transaction:null }; let transactions = [];
+        try {
+            [stats] = await query(`SELECT COUNT(*) transaction_count,COALESCE(SUM(CASE WHEN type='deposit' THEN amount ELSE 0 END),0) total_deposit,
+              COALESCE(SUM(CASE WHEN type='withdraw' THEN amount ELSE 0 END),0) total_withdrawal,MAX(date) last_transaction FROM transactions WHERE goal_id=?`, [req.params.id]);
+            transactions = await query('SELECT id,username,type,amount,date,description FROM transactions WHERE goal_id=? ORDER BY date DESC,id DESC LIMIT 50', [req.params.id]);
+        } catch (error) { if (error.code !== 'ER_BAD_FIELD_ERROR') throw error; }
         res.json({ status: 'success', data: { ...deriveGoal(rows[0]), ...stats, transactions } });
     } catch (error) { fail(req, res, error, 'Gagal memuat detail Financial Goal.'); }
 });
 
 router.post('/goals', authenticateToken, adminOnly, validateGoal, async (req, res) => {
+    await prepareSchema(true);
     const connection = await db.promise().getConnection();
     try {
         await connection.beginTransaction();
@@ -112,6 +130,7 @@ router.post('/goals', authenticateToken, adminOnly, validateGoal, async (req, re
 
 router.put('/goals/:id', authenticateToken, adminOnly, validateGoal, async (req, res) => {
     try {
+        await prepareSchema();
         const i = req.body;
         const result = await query(`UPDATE financial_goals SET title=?,target_amount=?,description=?,category=?,lifecycle_status=?,configured_priority=?,
           target_date=?,refill_enabled=?,healthy_threshold=?,critical_threshold=?,cycle_type=?,cycle_interval=?,next_due_date=?,is_recurring=?,milestone_behavior=? WHERE id=?`,
@@ -138,6 +157,7 @@ router.post('/goals/refill-recommendation', async (req, res) => {
     const capacity = number(req.body.monthly_saving_capacity);
     if (!Number.isFinite(capacity) || capacity <= 0) return res.status(400).json({ message: 'Kapasitas menabung harus lebih dari nol.' });
     try {
+        await prepareSchema();
         const recommendations = buildRecommendation(await loadGoals(), capacity);
         res.json({ status: 'success', data: { capacity, allocated: recommendations.reduce((sum, item) => sum + item.allocation, 0), recommendations } });
     } catch (error) { fail(req, res, error, 'Gagal menghitung rekomendasi refill.'); }
@@ -145,12 +165,19 @@ router.post('/goals/refill-recommendation', async (req, res) => {
 
 router.get('/financial-analytics', async (req, res) => {
     try {
+        await prepareSchema(true);
         const months = { '1M':1,'3M':3,'6M':6,'1Y':12,ALL:1200 }[req.query.period] || 6;
         const goals = (await loadGoals()).map(deriveGoal);
-        const monthly = await query(`SELECT DATE_FORMAT(date,'%Y-%m') period,SUM(CASE WHEN type='deposit' THEN amount ELSE 0 END) deposits,
-          SUM(CASE WHEN type='withdraw' THEN amount ELSE 0 END) withdrawals FROM transactions WHERE goal_id IS NOT NULL
-          AND date>=DATE_SUB(CURRENT_DATE,INTERVAL ? MONTH) GROUP BY DATE_FORMAT(date,'%Y-%m') ORDER BY period`, [months]);
-        const [coverage] = await query('SELECT COUNT(*) total,SUM(goal_id IS NOT NULL) allocated FROM transactions');
+        let monthly = []; let coverage = { total:0, allocated:0 };
+        try {
+            monthly = await query(`SELECT DATE_FORMAT(date,'%Y-%m') period,SUM(CASE WHEN type='deposit' THEN amount ELSE 0 END) deposits,
+              SUM(CASE WHEN type='withdraw' THEN amount ELSE 0 END) withdrawals FROM transactions WHERE goal_id IS NOT NULL
+              AND date>=DATE_SUB(CURRENT_DATE,INTERVAL ? MONTH) GROUP BY DATE_FORMAT(date,'%Y-%m') ORDER BY period`, [months]);
+            [coverage] = await query('SELECT COUNT(*) total,SUM(goal_id IS NOT NULL) allocated FROM transactions');
+        } catch (error) {
+            if (error.code !== 'ER_BAD_FIELD_ERROR') throw error;
+            [coverage] = await query('SELECT COUNT(*) total,0 allocated FROM transactions');
+        }
         let running = goals.reduce((sum, goal) => sum + goal.current_amount, 0) - monthly.reduce((sum, row) => sum + number(row.deposits) - number(row.withdrawals), 0);
         const trend = monthly.map(row => ({ period:row.period,deposits:number(row.deposits),withdrawals:number(row.withdrawals),net:number(row.deposits)-number(row.withdrawals),balance:running += number(row.deposits)-number(row.withdrawals) }));
         const categories = Object.values(CATEGORIES).map(category => ({ category,amount:goals.filter(goal => goal.category === category).reduce((sum, goal) => sum + goal.current_amount, 0) }));

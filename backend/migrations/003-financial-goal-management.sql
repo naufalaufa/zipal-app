@@ -24,7 +24,7 @@ WHERE category IS NULL AND title IN ('Dana Darurat','Dana Darurat Keluarga','Dan
 UPDATE financial_goals SET category='PLANNED'
 WHERE category IS NULL AND title IN ('Dana Isi Rumah','Dana Persalinan Anak','Dana Mobilitas Keluarga');
 UPDATE financial_goals SET category='RECURRING', is_recurring=TRUE
-WHERE category IS NULL AND title IN ('Dana Susu Anak 2 Tahun','Dana Jajan Anak','Dana Perkembangan Teknologi/Zaman',
+WHERE category IS NULL AND title IN ('Dana Susu Anak 2 Tahun','Dana Jajan Anak','Dana Perkembangan Teknologi/Zaman','Dana Perkembangan Teknologi / Zaman',
  'Uang Kebutuhan Lebaran Sampai Akhir Hayat','Dana Liburan Keluarga Pertahun');
 UPDATE financial_goals SET category='ASSET', milestone_behavior='CONTINUE'
 WHERE category IS NULL AND title IN ('Dana Pendidikan Anak','Investasi & Tabungan Masa Depan','Investasi & Tabungan Masa Depan 🪙');
