@@ -49,6 +49,8 @@
 .analytics-grid .ant-list-item { gap:8px; min-width:0; }
 .analytics-grid .ant-list-item-meta { min-width:0; }
 .chart-box { height:300px; position:relative; min-width:0; }
+.chart-box > .ant-empty { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; margin:0; }
+.chart-box > .ant-empty .ant-empty-image { margin-bottom:12px; }
 .coverage-note { margin-bottom:16px; }
 .insight-list .ant-list-item { padding-inline:0; }
 @media (max-width:991px) { .financial-page{padding:18px} .chart-box{height:280px} }

@@ -46,8 +46,8 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
   const cashShare = (contributionPercent / 100) * grandTotal;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-      <div style={{display:'flex', alignItems: 'center', gap: '12px'}}>
+    <div style={{ display: 'flex', flexDirection: screens.md ? 'row' : 'column', alignItems: screens.md ? 'center' : 'stretch', justifyContent: 'space-between', gap: screens.md ? '16px' : '12px', width: '100%', minWidth: 0 }}>
+      <div style={{display:'flex', alignItems: 'center', gap: '12px', minWidth: 0}}>
          <div onClick={() => setIsPreviewOpen(true)} style={{ cursor: 'pointer' }}>
             <Avatar 
                 src={avatarUrl} 
@@ -56,22 +56,20 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
                 style={{ border: `2px solid ${colorHighlight}`, backgroundColor: '#e6f7ff', color: colorHighlight }}
             />
          </div>
-         <div style={{display:'flex', flexDirection:'column'}}>
-            <span style={{ fontWeight: '600', fontSize:'16px' }}>{name}</span>
-            {screens.md && <span style={{ fontSize: '11px', color: '#8c8c8c' }}>Kontribusi: <b>{contributionPercent.toFixed(1)}%</b></span>}
+         <div style={{display:'flex', flexDirection:'column', minWidth: 0}}>
+            <span style={{ fontWeight: '600', fontSize:'16px', overflowWrap: 'anywhere' }}>{name}</span>
+            <span style={{ fontSize: '11px', color: '#8c8c8c' }}>Kontribusi: <b>{contributionPercent.toFixed(1)}%</b></span>
          </div>
       </div>
 
-      {screens.md && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', background:'#f5f5f5', padding:'4px 12px', borderRadius:'8px', border: '1px solid #e8e8e8' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: screens.md ? 'flex-start' : 'center', gap: '8px', minWidth: 0, width: screens.md ? 'auto' : '100%', fontSize: '13px', background:'#f5f5f5', padding: screens.md ? '5px 12px' : '9px 10px', borderRadius:'8px', border: '1px solid #e8e8e8' }}>
           <Tooltip title="Porsi tunai berdasarkan persentase deposit."><InfoCircleOutlined style={{color: colorHighlight}}/></Tooltip>
-          <span>Porsi Tunai: </span>
-          <span style={{ fontWeight: 'bold', color: isVisible ? colorHighlight : '#bfbfbf' }}>{isVisible ? formatRupiahSimple(cashShare) : 'Rp **********'}</span>
-          <div onClick={() => setIsVisible(!isVisible)} style={{ cursor: 'pointer', color: '#1890ff', display: 'flex' }}>
+          <span style={{ whiteSpace:'nowrap' }}>Porsi Tunai:</span>
+          <span style={{ fontWeight: 'bold', color: isVisible ? colorHighlight : '#8c8c8c', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{isVisible ? formatRupiahSimple(cashShare) : 'Rp ••••••••'}</span>
+          <Button type="text" size="small" aria-label={isVisible ? 'Sembunyikan porsi tunai' : 'Tampilkan porsi tunai'} onClick={() => setIsVisible(!isVisible)} style={{ color: '#1890ff', display:'inline-flex', alignItems:'center', justifyContent:'center', padding:2, width:26, minWidth:26, height:26 }}>
             {isVisible ? <EyeOutlined /> : <EyeInvisibleOutlined />}
-          </div>
-        </div>
-      )}
+          </Button>
+      </div>
 
       <Modal 
         open={isPreviewOpen} 
@@ -137,6 +135,8 @@ const Dashboard = () => {
 
   const handleTransactionSuccess = () => { fetchSaldo(); refreshHeader(); };
 
+  // Initial API synchronization intentionally populates the dashboard after mount.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { fetchSaldo(); fetchUserAvatars(); }, [fetchUserAvatars]);
 
   const totalWithdrawCalculated = (dataSaldo.total_deposit_overall || 0) - (dataSaldo.grand_total || 0);
