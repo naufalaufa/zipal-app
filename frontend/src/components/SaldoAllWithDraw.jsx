@@ -41,7 +41,7 @@ const SaldoAllWithDraw = ({ total }) => {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         
-        <span style={{ fontWeight: 'bold', fontSize: '17px', color: '#cf1322' }}>
+        <span style={{ fontWeight: 'bold', fontSize: '17px', color: 'var(--text-main)' }}>
           {isVisible ? formatRupiah(total) : 'Rp **********'}
         </span>
 

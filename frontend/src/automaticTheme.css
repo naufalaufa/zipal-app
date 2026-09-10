@@ -92,10 +92,19 @@ html, body { background: var(--canvas); color: var(--text-main); }
   .login-card { width: calc(100% - 24px); padding: 24px 16px; }
 }
 @media (max-width: 600px) {
-  .app-header.ant-layout-header { padding: 12px; flex-wrap: wrap; gap: 12px; }
-  .app-header__actions { gap: 10px; }
-  .app-header .theme-indicator { padding: 7px 9px; gap: 7px; }
-  .app-header .theme-indicator__schedule { display: none; }
-  .app-header .theme-indicator__title { flex-direction: column; align-items: flex-start; gap: 2px; }
-  .app-header .theme-indicator__icon { width: 28px; height: 28px; }
+  .app-header.ant-layout-header {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    padding: 16px 20px; gap: 14px 16px;
+  }
+  .app-header__actions { display: contents; }
+  .app-header__balance { grid-column: 1; grid-row: 1; min-width: 0; }
+  .app-header__profile { grid-column: 2; grid-row: 1; justify-self: end; }
+  .app-header__profile small { display: none !important; }
+  .app-header .theme-indicator {
+    grid-column: 1 / -1; grid-row: 2; width: 100%;
+    padding: 10px 12px; gap: 12px;
+  }
+  .app-header .theme-indicator__title { flex-wrap: wrap; gap: 8px; }
+  .app-header .theme-indicator__schedule { line-height: 1.5; }
+  .app-header .theme-indicator__icon { width: 34px; height: 34px; }
 }

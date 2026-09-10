@@ -78,7 +78,7 @@ export default function Agreement() {
   return <div>
     <HeadNavbar title="Zipal Agreement" icon={<FileProtectOutlined />} description="Dokumen legalitas tabungan bersama (Joint Account Agreement)" />
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '0 20px 40px' }}>
-      <Alert title="Dokumen Resmi Internal" description="Harap baca setiap pasal dengan teliti. Kesepakatan ini mengikat kedua belah pihak demi kenyamanan finansial bersama." type="info" showIcon style={{ marginBottom: 20, border: '1px solid #91d5ff', backgroundColor: '#e6f7ff' }} />
+      <Alert title="Dokumen Resmi Internal" description="Harap baca setiap pasal dengan teliti. Kesepakatan ini mengikat kedua belah pihak demi kenyamanan finansial bersama." type="info" showIcon style={{ marginBottom: 20 }} />
       {error && <Alert type="error" title={error} showIcon action={<Button onClick={fetchAgreement} icon={<ReloadOutlined />}>Coba lagi</Button>} style={{ marginBottom: 16 }} />}
       {!agreement && !error && <div style={{ textAlign: 'center', padding: 48 }}><Spin tip="Memuat perjanjian..." /></div>}
       {agreement && <Card variant="borderless" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.08)', borderRadius: 12 }} styles={{ body: { padding: 0 } }}>

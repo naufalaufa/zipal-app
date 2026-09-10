@@ -22,7 +22,6 @@ const SaldoTotalIn = ({ total }) => {
       marginTop: '50px', 
       marginBottom: '60px',
       gap: '5px',
-      borderRight: '1px solid #f0f0f0', // Garis pemisah di kanan
       width: '100%'
     }}>
       
@@ -43,7 +42,7 @@ const SaldoTotalIn = ({ total }) => {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
         
-        <span style={{ fontWeight: 'bold', fontSize: '17px', color: '#0050b3' }}>
+        <span style={{ fontWeight: 'bold', fontSize: '17px', color: 'var(--text-main)' }}>
           {isVisible ? formatRupiah(total) : 'Rp **********'}
         </span>
 
