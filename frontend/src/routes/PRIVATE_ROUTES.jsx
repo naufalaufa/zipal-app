@@ -1,6 +1,7 @@
 import { createBrowserRouter , Navigate} from "react-router-dom";
 import {  Agreement, Dashboard, FinancialAnalytics, History, Investment, LogActivities, Profile, Purpose } from "../pages";
 import { UserLayout } from "../components";
+import RouteError from '../components/RouteError';
 const PRIVATE_ROUTES = createBrowserRouter([
     {
         path: '/',
@@ -10,6 +11,7 @@ const PRIVATE_ROUTES = createBrowserRouter([
         name: 'dashboard',
         path: '/dashboard',
         element: <UserLayout />,
+        errorElement: <RouteError />,
         children: [
             {
                 index: true,
@@ -25,10 +27,12 @@ const PRIVATE_ROUTES = createBrowserRouter([
             },
             {
                 path: 'purpose',
+                errorElement: <RouteError />,
                 element: <Purpose />    
             },
             {
                 path: 'analytics',
+                errorElement: <RouteError />,
                 element: <FinancialAnalytics />
             },
             {

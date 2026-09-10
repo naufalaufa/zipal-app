@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom"; 
 import { Card, Col, Row, Divider, Modal, Grid, Tooltip, Typography, Avatar, Button } from "antd"; 
 import { 
@@ -27,6 +27,7 @@ import {
   EyeInvisibleOutlined 
 } from "@ant-design/icons";
 import api from "../api";
+import PersonCompanion from '../components/PersonCompanion';
 
 const { useBreakpoint } = Grid; 
 const { Text, Title } = Typography;
@@ -56,9 +57,9 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
                 style={{ border: `2px solid ${colorHighlight}`, backgroundColor: '#e6f7ff', color: colorHighlight }}
             />
          </div>
-         <div style={{display:'flex', flexDirection:'column', minWidth: 0}}>
-            <span style={{ fontWeight: '600', fontSize:'16px', overflowWrap: 'anywhere' }}>{name}</span>
-            <span style={{ fontSize: '11px', color: '#8c8c8c' }}>Kontribusi: <b>{contributionPercent.toFixed(1)}%</b></span>
+         <div style={{display:'flex', flexDirection:'column' , padding : '8px'}}>
+            <span style={{ fontWeight: '600', fontSize:'16px' }}>{name}</span>
+            {screens.md && <span style={{ fontSize: '11px', color: '#8c8c8c' }}>Kontribusi: <b>{contributionPercent.toFixed(1)}%</b></span>}
          </div>
       </div>
 
@@ -121,22 +122,29 @@ const Dashboard = () => {
     return avatar.startsWith('http') ? avatar : `${import.meta.env.VITE_API_URL}/public/uploads/${avatar}`;
   };
 
-  const fetchUserAvatars = useCallback(async () => {
-    try {
-      const resNaufal = await api.post('/auth/check-username', { username: 'naufalaufa' });
-      const resZihra = await api.post('/auth/check-username', { username: 'zihraangelina' });
+  const handleTransactionSuccess = () => { fetchSaldo(); refreshHeader(); };
 
-      setUserAvatars({
-        naufalaufa: getAvatarUrl(resNaufal.data.user?.avatar),
-        zihraangelina: getAvatarUrl(resZihra.data.user?.avatar)
+  useEffect(() => {
+    let active = true;
+    api.get('/summary').then(({ data }) => {
+      if (active && data.status === 'success') setDataSaldo(data.data);
+    }).catch(error => console.error('Gagal load summary', error));
+    Promise.all([
+      api.post('/auth/check-username', { username: 'naufalaufa' }),
+      api.post('/auth/check-username', { username: 'zihraangelina' }),
+    ]).then(([naufal, zihra]) => {
+      if (active) setUserAvatars({
+        naufalaufa: getAvatarUrl(naufal.data.user?.avatar),
+        zihraangelina: getAvatarUrl(zihra.data.user?.avatar),
       });
-    } catch (error) { console.error("Gagal load avatar real-time", error); }
+    }).catch(error => console.error('Gagal load avatar real-time', error));
+    return () => { active = false; };
   }, []);
 
   const handleTransactionSuccess = () => { fetchSaldo(); refreshHeader(); };
-
   // Initial API synchronization intentionally populates the dashboard after mount.
   // eslint-disable-next-line react-hooks/set-state-in-effect
+
   useEffect(() => { fetchSaldo(); fetchUserAvatars(); }, [fetchUserAvatars]);
 
   const totalWithdrawCalculated = (dataSaldo.total_deposit_overall || 0) - (dataSaldo.grand_total || 0);
