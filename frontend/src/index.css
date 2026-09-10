@@ -1,5 +1,20 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@600;700&display=swap');
 
+.balance-person-name { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.person-companion { display:inline-flex; flex:none; line-height:0; }
+.person-companion__head { transform-origin:32px 45px; }
+.person-companion__hand { transform-origin:53px 53px; }
+.person-companion__eyes { transform-box:fill-box; transform-origin:center; }
+@media (prefers-reduced-motion: no-preference) {
+  .person-companion__head { animation:companion-nod 5s ease-in-out infinite; }
+  .person-companion__hand { animation:companion-wave 3.5s ease-in-out infinite; }
+  .person-companion__eyes { animation:companion-blink 5.5s infinite; }
+  .person-companion--female g { animation-delay:.6s; }
+}
+@keyframes companion-nod { 0%, 65%, 100% { transform:rotate(0); } 75% { transform:rotate(-5deg); } 85% { transform:rotate(4deg); } }
+@keyframes companion-wave { 0%, 55%, 100% { transform:rotate(0); } 65%, 85% { transform:rotate(-16deg); } 75%, 95% { transform:rotate(10deg); } }
+@keyframes companion-blink { 0%, 43%, 47%, 100% { transform:scaleY(1); } 45% { transform:scaleY(.1); } }
+
 * {
   padding: 0;
   margin: 0;

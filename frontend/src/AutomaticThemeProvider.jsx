@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { ConfigProvider, theme } from 'antd';
 import { Chart } from 'chart.js';
 import { ThemeContext } from './themeContext';
@@ -6,6 +6,7 @@ import { getScheduledTheme, getNextThemeChange } from './themeSchedule';
 
 export default function AutomaticThemeProvider({ children }) {
   const [mode, setMode] = useState(getScheduledTheme);
+  const previousMode = useRef(mode);
 
   useEffect(() => {
     let timeout;
@@ -34,7 +35,8 @@ export default function AutomaticThemeProvider({ children }) {
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', mode === 'dark' ? '#101522' : '#f6f7fc');
     Chart.defaults.color = mode === 'dark' ? '#b8c2d8' : '#667085';
     Chart.defaults.borderColor = mode === 'dark' ? '#2b354a' : '#e6e9f2';
-    Object.values(Chart.instances).forEach(chart => chart.update('none'));
+    if (previousMode.current !== mode) Object.values(Chart.instances).forEach(chart => chart.update('none'));
+    previousMode.current = mode;
   }, [mode]);
 
   return (

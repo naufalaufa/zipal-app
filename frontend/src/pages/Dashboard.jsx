@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom"; 
 import { Card, Col, Row, Divider, Modal, Grid, Tooltip, Typography, Avatar, Button } from "antd"; 
 import { 
@@ -27,6 +27,7 @@ import {
   EyeInvisibleOutlined 
 } from "@ant-design/icons";
 import api from "../api";
+import PersonCompanion from '../components/PersonCompanion';
 
 const { useBreakpoint } = Grid; 
 const { Text, Title } = Typography;
@@ -56,8 +57,8 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
                 style={{ border: `2px solid ${colorHighlight}`, backgroundColor: '#e6f7ff', color: colorHighlight }}
             />
          </div>
-         <div style={{display:'flex', flexDirection:'column'}}>
-            <span style={{ fontWeight: '600', fontSize:'16px' }}>{name}</span>
+         <div style={{display:'flex', flexDirection:'column' , padding : '8px'}}>
+            <span className="balance-person-name" style={{ fontWeight: '600', fontSize:'16px' }}>{name}<PersonCompanion name={name} /></span>
             {screens.md && <span style={{ fontSize: '11px', color: '#8c8c8c' }}>Kontribusi: <b>{contributionPercent.toFixed(1)}%</b></span>}
          </div>
       </div>
@@ -123,21 +124,24 @@ const Dashboard = () => {
     return avatar.startsWith('http') ? avatar : `${import.meta.env.VITE_API_URL}/public/uploads/${avatar}`;
   };
 
-  const fetchUserAvatars = useCallback(async () => {
-    try {
-      const resNaufal = await api.post('/auth/check-username', { username: 'naufalaufa' });
-      const resZihra = await api.post('/auth/check-username', { username: 'zihraangelina' });
-
-      setUserAvatars({
-        naufalaufa: getAvatarUrl(resNaufal.data.user?.avatar),
-        zihraangelina: getAvatarUrl(resZihra.data.user?.avatar)
-      });
-    } catch (error) { console.error("Gagal load avatar real-time", error); }
-  }, []);
-
   const handleTransactionSuccess = () => { fetchSaldo(); refreshHeader(); };
 
-  useEffect(() => { fetchSaldo(); fetchUserAvatars(); }, [fetchUserAvatars]);
+  useEffect(() => {
+    let active = true;
+    api.get('/summary').then(({ data }) => {
+      if (active && data.status === 'success') setDataSaldo(data.data);
+    }).catch(error => console.error('Gagal load summary', error));
+    Promise.all([
+      api.post('/auth/check-username', { username: 'naufalaufa' }),
+      api.post('/auth/check-username', { username: 'zihraangelina' }),
+    ]).then(([naufal, zihra]) => {
+      if (active) setUserAvatars({
+        naufalaufa: getAvatarUrl(naufal.data.user?.avatar),
+        zihraangelina: getAvatarUrl(zihra.data.user?.avatar),
+      });
+    }).catch(error => console.error('Gagal load avatar real-time', error));
+    return () => { active = false; };
+  }, []);
 
   const totalWithdrawCalculated = (dataSaldo.total_deposit_overall || 0) - (dataSaldo.grand_total || 0);
   const elegantCardStyle = { borderRadius: '8px', border: '1px solid var(--line)', height: '100%', display: 'flex', flexDirection: 'column' };

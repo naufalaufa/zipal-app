@@ -1,7 +1,7 @@
 .financial-page { width:100%; max-width:1280px; margin:0 auto; padding:20px; overflow-x:clip; }
 .page-toolbar { display:flex; justify-content:space-between; gap:16px; align-items:flex-start; margin-bottom:20px; }
 .goal-summary { margin-bottom:16px; }
-.goal-summary .ant-card { height:100%; border-color:#edf0f5; }
+.goal-summary .ant-card { height:100%; border-color:var(--line); }
 .goal-summary .ant-statistic-content { font-size:20px; overflow-wrap:anywhere; }
 .recovery-card { margin:16px 0; border-radius:10px; }
 .goal-filters { display:flex; gap:8px; flex-wrap:wrap; width:100%; margin:20px 0; }
@@ -44,11 +44,21 @@
 .goal-priority { margin-left:auto; margin-inline-end:0; }
 .goal-drawer .ant-drawer-body { padding:20px; overflow-x:hidden; }
 .goal-descriptions .ant-descriptions-item-label { white-space:normal; }
-.goal-descriptions .ant-descriptions-item-content { min-width:0; overflow-wrap:normal; word-break:normal; }
-.analytics-grid .ant-card { height:100%; border-color:#edf0f5; min-width:0; }
+.goal-descriptions .ant-descriptions-item-content { min-width:0; overflow-wrap:anywhere; }
+.goal-descriptions table { width:100%; table-layout:fixed; }
+.goal-descriptions .ant-descriptions-item-label { width:38%; }
+.goal-drawer .ant-space-item { min-width:0; max-width:100%; }
+.goal-drawer .ant-list-item { gap:12px; flex-wrap:wrap; }
+.goal-drawer .ant-list-item-meta { min-width:0; }
+.analytics-grid .ant-card { height:100%; border-color:var(--line); min-width:0; }
 .analytics-grid .ant-list-item { gap:8px; min-width:0; }
 .analytics-grid .ant-list-item-meta { min-width:0; }
 .chart-box { height:300px; position:relative; min-width:0; }
+.chart-reveal { width:100%; height:100%; }
+@media (prefers-reduced-motion: no-preference) {
+  .chart-reveal { animation:chart-entrance .65s ease-out both; }
+}
+@keyframes chart-entrance { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 .coverage-note { margin-bottom:16px; }
 .insight-list .ant-list-item { padding-inline:0; }
 @media (max-width:991px) { .financial-page{padding:18px} .chart-box{height:280px} }

@@ -17,7 +17,11 @@ export const normalizeFinancialGoal = goal => ({ ...goal, id:safeNumber(goal?.id
   remaining_amount:safeNumber(goal?.remaining_amount), surplus_amount:safeNumber(goal?.surplus_amount), refill_deficit:safeNumber(goal?.refill_deficit),
   effective_priority:safeNumber(goal?.effective_priority) || 4, effective_status:goal?.effective_status || 'ACTIVE', transactions:Array.isArray(goal?.transactions) ? goal.transactions : [] });
 export const money = value => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(safeNumber(value));
-export const dateText = value => value ? new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(new Date(value)) : '—';
+export const dateText = value => {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : new Intl.DateTimeFormat('id-ID', { dateStyle: 'medium' }).format(date);
+};
 
 const statusMeta = {
   ACTIVE: ['Aktif', 'default'], ON_TRACK: ['On Track', 'processing'], NEEDS_REFILL: ['Needs Refill', 'warning'],
@@ -69,7 +73,7 @@ export function FinancialGoalDetail({ open, loading, goal, onClose }) {
       <Card size="small"><Typography.Text type="secondary">Saldo saat ini</Typography.Text><Typography.Title level={2}>{money(goal.current_amount)}</Typography.Title>
         <Progress percent={clampPercent(goal.progress)} format={() => `${safeNumber(goal.progress).toFixed(1)}%`} />
         {goal.refill_deficit > 0 && <Alert type="warning" showIcon message={`Perlu refill ${money(goal.refill_deficit)} untuk kembali ke saldo ideal.`} />}</Card>
-      <Descriptions className="goal-descriptions" column={{ xs:1, sm:1, md:2 }} size="small" bordered items={[
+      <Descriptions className="goal-descriptions" column={1} size="small" bordered items={[
         { key:'target',label:'Target',children:money(goal.target_amount) },{ key:'remaining',label:'Remaining',children:money(goal.remaining_amount) },
         { key:'deposit',label:'Total deposit',children:money(goal.total_deposit) },{ key:'withdraw',label:'Total withdrawal',children:money(goal.total_withdrawal) },
         { key:'targetDate',label:'Target date',children:dateText(goal.target_date) },{ key:'created',label:'Dibuat',children:dateText(goal.created_at) },
@@ -82,5 +86,5 @@ export function FinancialGoalDetail({ open, loading, goal, onClose }) {
   </Drawer>;
 }
 
-export function EmptyGoalCategory({ label, onAdd }) { return <Empty description={`Belum ada ${label}.`}><Button type="primary" onClick={onAdd}>+ Tambah Goal</Button></Empty>; }
+export function EmptyGoalCategory({ label, onAdd }) { return <Empty description={`Belum ada ${label}.`}>{onAdd && <Button type="primary" onClick={onAdd}>+ Tambah Goal</Button>}</Empty>; }
 export function DueDate({ value }) { return value ? <Space><CalendarOutlined />{dateText(value)}</Space> : null; }
