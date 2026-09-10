@@ -1,8 +1,11 @@
 import { Card, Typography, Flex } from 'antd'
 import '../index.css'
+import { useAutomaticTheme } from '../themeContext'
 const { Title, Text } = Typography
 
 const HeadNavbar = ({ title, icon, description }) => {
+  // Subscribe so greetings refresh when the automatic theme changes.
+  useAutomaticTheme()
   const getUser = () => {
     try {
       const storedUser = sessionStorage.getItem('user')

@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { startSession } from "../authSession";
 import api from "../api";
 import ForgotPassword from "./ForgotPassword";
+import ThemeIndicator from './ThemeIndicator';
 
 const FormLayout = () => {
   const [loading, setLoading] = useState(false);
@@ -65,6 +66,7 @@ const FormLayout = () => {
   return (
     <div className="form-outer-wrapper">
       <div className="login-card">
+        <div className="login-theme"><ThemeIndicator /></div>
         <div className="login-card-header">
           <div className="login-badge">Zipal 🧑‍🦱👧</div>
           <div className="login-icon-wrap">🔐</div>

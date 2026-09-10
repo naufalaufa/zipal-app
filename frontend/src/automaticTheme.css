@@ -1,0 +1,101 @@
+:root {
+  --surface: #fff;
+  --surface-soft: #f5f6fb;
+  --canvas: #f6f7fc;
+  --text-main: #252a43;
+  --text-muted: #67718a;
+  --line: #e6e8f1;
+  --accent-soft: #eeebff;
+  --accent-text: #6355ba;
+}
+:root[data-theme='dark'] {
+  --surface: #181f30;
+  --surface-soft: #20293c;
+  --canvas: #101522;
+  --text-main: #edf0fa;
+  --text-muted: #b0bad0;
+  --line: #303b52;
+  --accent-soft: #2b2749;
+  --accent-text: #c0b5ff;
+}
+html, body { background: var(--canvas); color: var(--text-main); }
+.app-header.ant-layout-header {
+  background: var(--surface); color: var(--text-main); padding: 0 24px;
+  display: flex; justify-content: space-between; align-items: center; gap: 16px;
+  height: auto; min-height: 76px; line-height: normal; flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+}
+.app-header__actions { display: flex; align-items: center; gap: 24px; }
+.app-sidebar.ant-layout-sider, .app-sidebar .ant-menu { background: var(--surface); }
+.app-sidebar { border-right: 1px solid var(--line); }
+.app-brand { background: var(--accent-soft); color: var(--accent-text); font-weight: 600; }
+.theme-indicator {
+  display: inline-flex; align-items: center; gap: 10px; max-width: 100%;
+  padding: 9px 12px; border: 1px solid var(--line); border-radius: 14px;
+  background: linear-gradient(120deg, var(--surface), var(--surface-soft));
+  color: var(--text-main); cursor: default; text-align: left; line-height: 1.4;
+}
+.theme-indicator__icon {
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 11px;
+  display: grid; place-items: center; background: #fff0cd; color: #9a640a;
+}
+[data-theme='dark'] .theme-indicator__icon { background: #343052; color: #c9bdff; }
+.theme-indicator__copy { display: flex; flex-direction: column; gap: 3px; }
+.theme-indicator__title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; }
+.theme-indicator__badge { font-size: 9px; font-weight: 600; color: var(--accent-text); background: var(--accent-soft); border-radius: 5px; padding: 2px 5px; }
+.theme-indicator__schedule { font-size: 10px; color: var(--text-muted); }
+.login-layout {
+  width: 100%; height: auto; min-height: 100dvh; grid-template-columns: 1fr 1.4fr; overflow: visible;
+  background: radial-gradient(ellipse at top right, var(--accent-soft), var(--canvas) 75%);
+}
+.login-layout .sidetext-layout-container {
+  height: 100%; min-height: 100dvh; padding: 32px; text-align: center;
+  background: linear-gradient(150deg, #211b4b, #583394 65%, #8d4589);
+}
+.login-card {
+  width: calc(100% - 48px); max-width: 440px; padding: 30px; margin: 28px 0;
+  border: 1px solid var(--line); border-radius: 24px; background: var(--surface);
+  box-shadow: 0 24px 70px #211b4b12;
+}
+.login-theme { display: flex; justify-content: center; margin-bottom: 28px; }
+.form-outer-wrapper { min-height: 100dvh; height: auto; }
+.form-outer-wrapper .login-card { width: 100%; }
+[data-theme='dark'] .form-outer-wrapper { background: radial-gradient(ellipse at top right, #292343, #101522 75%); }
+[data-theme='dark'] .login-icon-wrap { background: var(--accent-soft); }
+[data-theme='dark'] .login-card .ant-input,
+[data-theme='dark'] .login-card .ant-input-affix-wrapper { background: var(--surface-soft) !important; border-color: var(--line) !important; color: var(--text-main) !important; }
+[data-theme='dark'] .login-card .ant-input-affix-wrapper .ant-input { background: transparent !important; color: var(--text-main) !important; }
+[data-theme='dark'] .forgot-password-btn { color: var(--accent-text) !important; }
+.login-card .login-form { background: transparent; box-shadow: none; max-width: none; padding: 0; }
+.login-card-header { text-align: center; margin-bottom: 26px; }
+.login-badge { display: inline-block; padding: 5px 10px; border-radius: 8px; background: var(--accent-soft); color: var(--accent-text); font-size: 11px; font-weight: 600; }
+.login-card-header h2 { font-family: var(--font-heading); font-size: 22px; margin: 16px 0 8px; color: var(--text-main); }
+.login-card-header p { color: var(--text-muted); font-size: 12px; line-height: 1.6; }
+.login-card .login-form .ant-form-item-label > label,
+.login-card .login-form .ant-checkbox-wrapper { color: var(--text-main) !important; }
+.login-card .ant-btn-primary { min-height: 42px; font-weight: 600; background: linear-gradient(120deg, #6355d8, #8851cf); color: white; }
+.login-card .ant-input::placeholder { color: var(--text-muted); }
+[data-theme='dark'] .login-card { box-shadow: 0 24px 70px #0003; }
+[data-theme='dark'] .greeting-banner { background: linear-gradient(120deg, #292853, #3c2855 60%, #452843); border: 1px solid #514166; }
+[data-theme='dark'] .swal2-popup { background: var(--surface); color: var(--text-main); }
+[data-theme='dark'] .swal2-input { background: var(--surface-soft); color: var(--text-main); border-color: var(--line); }
+[data-theme='dark'] .goal-filter:not(.ant-btn-primary),
+[data-theme='dark'] .goal-icon { background: var(--accent-soft); border-color: var(--line); color: var(--accent-text); }
+[data-theme='dark'] .goal-action-edit { background: #172e49 !important; color: #91caff !important; border-color: #305378 !important; }
+[data-theme='dark'] .goal-action-delete { background: #3f222d !important; color: #ffa3af !important; border-color: #744050 !important; }
+@media (prefers-reduced-motion: no-preference) {
+  body, .app-header, .app-sidebar, .theme-indicator, .login-card { transition: background-color .3s ease, color .3s ease, border-color .3s ease; }
+}
+@media (max-width: 768px) {
+  .login-layout { grid-template-columns: 1fr; padding: 0; }
+  .login-layout .sidetext-layout-container { display: none; }
+  .login-card { width: calc(100% - 24px); padding: 24px 16px; }
+}
+@media (max-width: 600px) {
+  .app-header.ant-layout-header { padding: 12px; flex-wrap: wrap; gap: 12px; }
+  .app-header__actions { gap: 10px; }
+  .app-header .theme-indicator { padding: 7px 9px; gap: 7px; }
+  .app-header .theme-indicator__schedule { display: none; }
+  .app-header .theme-indicator__title { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .app-header .theme-indicator__icon { width: 28px; height: 28px; }
+}

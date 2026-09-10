@@ -4,6 +4,14 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/tabungan.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f6f7fc" />
+    <script>
+      // Apply before first paint to avoid a bright flash at night.
+      const hour = new Date().getHours();
+      const mode = hour >= 5 && hour < 18 ? 'light' : 'dark';
+      document.documentElement.dataset.theme = mode;
+      document.documentElement.style.colorScheme = mode;
+    </script>
     
     <title>Zipal | Tabungan Zihra & Naufal</title>
   </head>

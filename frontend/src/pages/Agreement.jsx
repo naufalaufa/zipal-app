@@ -82,19 +82,19 @@ export default function Agreement() {
       {error && <Alert type="error" title={error} showIcon action={<Button onClick={fetchAgreement} icon={<ReloadOutlined />}>Coba lagi</Button>} style={{ marginBottom: 16 }} />}
       {!agreement && !error && <div style={{ textAlign: 'center', padding: 48 }}><Spin tip="Memuat perjanjian..." /></div>}
       {agreement && <Card variant="borderless" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.08)', borderRadius: 12 }} styles={{ body: { padding: 0 } }}>
-        <div style={{ padding: 24, borderBottom: '1px solid #f0f0f0', textAlign: 'center', backgroundColor: '#fafafa', borderRadius: '12px 12px 0 0' }}>
+        <div style={{ padding: 24, borderBottom: '1px solid var(--line)', textAlign: 'center', backgroundColor: 'var(--surface-soft)', borderRadius: '12px 12px 0 0' }}>
           <Title level={3} style={{ margin: 0 }}>{agreement.content.title}</Title>
           <Text type="secondary">Nomor: {agreement.agreement_number}</Text>
           <div style={{ marginTop: 12 }}><Tag color={draft ? 'default' : agreement.status === 'FINAL' ? 'green' : 'gold'}>{draft ? 'Menunggu tanda tangan' : agreement.status === 'FINAL' ? 'FINAL' : 'WAITING_EMETERAI'}</Tag></div>
         </div>
-        <div style={{ maxHeight: 500, overflowY: 'auto', padding: 24, backgroundColor: '#fff' }}>
+        <div style={{ maxHeight: 500, overflowY: 'auto', padding: 24, backgroundColor: 'var(--surface)' }}>
           <Space orientation="vertical" size="large" style={{ width: '100%' }}>
             <div><Text>{agreement.content.introduction}</Text>
               <ul style={{ paddingLeft: 20, marginTop: 10 }}>{agreement.content.parties.map(party => <li key={party.key}><b>{party.label}:</b> {party.name}</li>)}</ul>
               <Text>{agreement.content.preamble}</Text>
             </div>
-            {agreement.content.clauses.map((clause, index) => <Card key={index} type="inner" title={<span style={{ fontWeight: 'bold', color: '#1890ff', whiteSpace: 'normal' }}>{clause.title}</span>} style={{ backgroundColor: '#fff', border: '1px solid #f0f0f0' }}>
-              <Text style={{ whiteSpace: 'pre-line', color: '#595959', lineHeight: 1.6 }}>{clause.content}</Text>
+            {agreement.content.clauses.map((clause, index) => <Card key={index} type="inner" title={<span style={{ fontWeight: 'bold', color: '#1890ff', whiteSpace: 'normal' }}>{clause.title}</span>} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--line)' }}>
+              <Text style={{ whiteSpace: 'pre-line', color: 'var(--text-muted)', lineHeight: 1.6 }}>{clause.content}</Text>
             </Card>)}
           </Space>
         </div>
@@ -118,7 +118,7 @@ export default function Agreement() {
             })}
           </Row>
         </div>
-        <div style={{ padding: '20px 24px', borderTop: '1px solid #f0f0f0', backgroundColor: '#fafafa', borderRadius: '0 0 12px 12px' }}>
+        <div style={{ padding: '20px 24px', borderTop: '1px solid var(--line)', backgroundColor: 'var(--surface-soft)', borderRadius: '0 0 12px 12px' }}>
           <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
             {draft ? <>
               <Text type="secondary">{!ready ? 'Menunggu kedua pihak Apply tanda tangan.' : !isAdmin ? 'Hanya ZipalAdmin yang dapat mengesahkan perjanjian.' : 'Kedua tanda tangan lengkap. Perjanjian siap disahkan.'}</Text>

@@ -62,7 +62,7 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
          </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: screens.md ? 'flex-start' : 'center', gap: '8px', minWidth: 0, width: screens.md ? 'auto' : '100%', fontSize: '13px', background:'#f5f5f5', padding: screens.md ? '5px 12px' : '9px 10px', borderRadius:'8px', border: '1px solid #e8e8e8' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: screens.md ? 'flex-start' : 'center', gap: '8px', minWidth: 0, width: screens.md ? 'auto' : '100%', fontSize: '13px', background:'var(--surface-soft)', padding: screens.md ? '5px 12px' : '9px 10px', borderRadius:'8px', border: '1px solid var(--line)' }}>
           <Tooltip title="Porsi tunai berdasarkan persentase deposit."><InfoCircleOutlined style={{color: colorHighlight}}/></Tooltip>
           <span style={{ whiteSpace:'nowrap' }}>Porsi Tunai:</span>
           <span style={{ fontWeight: 'bold', color: isVisible ? colorHighlight : '#8c8c8c', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{isVisible ? formatRupiahSimple(cashShare) : 'Rp ••••••••'}</span>
@@ -140,7 +140,7 @@ const Dashboard = () => {
   useEffect(() => { fetchSaldo(); fetchUserAvatars(); }, [fetchUserAvatars]);
 
   const totalWithdrawCalculated = (dataSaldo.total_deposit_overall || 0) - (dataSaldo.grand_total || 0);
-  const elegantCardStyle = { borderRadius: '8px', border: '1px solid #e8e8e8', height: '100%', display: 'flex', flexDirection: 'column' };
+  const elegantCardStyle = { borderRadius: '8px', border: '1px solid var(--line)', height: '100%', display: 'flex', flexDirection: 'column' };
 
   return (
     <div style={{ paddingBottom: '40px' }}>

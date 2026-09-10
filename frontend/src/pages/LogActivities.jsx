@@ -127,7 +127,7 @@ const LogActivities = () => {
                     />
                     <div style={{ overflow: 'hidden' }}>
                         <div style={{ fontWeight: '600', fontSize: '14px', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{text}</div>
-                        <div style={{ fontSize: '11px', color: '#888' }}>ID: {record.user_id}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>ID: {record.user_id}</div>
                     </div>
                 </div>
             ),
@@ -157,11 +157,11 @@ const LogActivities = () => {
             sorter: (a, b) => moment(a.login_at).unix() - moment(b.login_at).unix(),
             defaultSortOrder: 'descend',
             render: (date) => (
-                <div style={{ color: '#555', fontSize: '13px' }}>
+                <div style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
                     <ClockCircleOutlined style={{ marginRight: '6px', color: '#faad14' }} />
                     {moment(date).format('DD MMM YYYY')} 
                     <span style={{ margin: '0 6px', color: '#ccc' }}>|</span>
-                    <strong style={{ color: '#333' }}>{moment(date).format('HH:mm')}</strong>
+                    <strong style={{ color: 'var(--text-main)' }}>{moment(date).format('HH:mm')}</strong>
                 </div>
             ),
         },
@@ -191,7 +191,7 @@ const LogActivities = () => {
                         marginBottom: '20px',
                         gap: '10px' // Jarak antar elemen saat stack
                     }}>
-                        <div style={{ color: '#666', fontSize: screens.md ? '14px' : '13px' }}>
+                        <div style={{ color: 'var(--text-muted)', fontSize: screens.md ? '14px' : '13px' }}>
                             Total Logs: <b>{logs.length}</b> record
                         </div>
                         <div style={{ display: 'flex', gap: '10px', width: screens.md ? 'auto' : '100%' }}>
