@@ -1,20 +1,45 @@
-export default function PersonCompanion({ name }) {
-  const female = name.toLowerCase().includes('zihra');
-  return <span className={`person-companion ${female ? 'person-companion--female' : ''}`} aria-hidden="true">
-    <svg viewBox="0 0 64 64" width="34" height="34" fill="none">
-      <circle cx="32" cy="32" r="30" fill={female ? '#49304f' : '#253f62'} />
-      <g className="person-companion__head">
-        {female && <path d="M13 37V24C13 2 51 2 51 24V46H13Z" fill="#73482f" />}
-        <path d="M15 59c1-20 33-20 34 0" fill={female ? '#e9a6cc' : '#92b9f3'} />
-        <path d="M27 40h10v10c-4 4-7 4-10 0" fill="#efbd9e" />
-        <ellipse cx="32" cy="28" rx="16" ry="19" fill="#ffe0c7" />
-        <path d={female ? 'M16 28C10 6 39 1 48 19L48 30C42 26 37 21 33 16C29 23 24 26 16 28Z' : 'M16 25C9 10 23 5 35 7C48 6 51 18 47 27L42 18C34 24 28 14 21 20L18 29Z'} fill={female ? '#73482f' : '#71503a'} />
-        <g className="person-companion__eyes" fill="#493c38"><ellipse cx="26" cy="29" rx="2" ry="2.8" /><ellipse cx="39" cy="29" rx="2" ry="2.8" /></g>
-        <path d="M28 37q5 5 10-1" stroke="#b66f62" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="22" cy="35" r="3" fill="#f3b5a6" opacity=".6" /><circle cx="43" cy="35" r="3" fill="#f3b5a6" opacity=".6" />
-        {female && <path d="m43 13 6-4 2 7-7 1Z" fill="#f5b9df" />}
-      </g>
-      <g className="person-companion__hand"><path d="M49 51V40c0-3 4-3 4 0v3-8c0-3 4-3 4 0v9c5-6 7-2 4 2l-3 7c-2 5-9 4-9-2Z" fill="#ffe0c7" stroke="#dca98a" strokeWidth=".8" /></g>
-    </svg>
-  </span>;
+const PERSON_META = {
+  male: { label: 'Ikon pendamping Naufal', background: '#1e3a5f', shirt: '#75a7f7', hair: '#49352d' },
+  female: { label: 'Ikon pendamping Zihra', background: '#5a315f', shirt: '#f09bc9', hair: '#6b422d' },
+};
+
+export default function PersonCompanion({ name = '' }) {
+  const variant = name.toLowerCase().includes('zihra') ? 'female' : 'male';
+  const meta = PERSON_META[variant];
+
+  return (
+    <span className={`person-companion person-companion--${variant}`} role="img" aria-label={meta.label} title={meta.label}>
+      <svg viewBox="0 0 72 72" aria-hidden="true" focusable="false">
+        <circle className="person-companion__halo" cx="36" cy="36" r="32" fill={meta.background} />
+        <circle className="person-companion__ring" cx="36" cy="36" r="33.5" />
+        <g className="person-companion__sparkles">
+          <path d="M59 13v8M55 17h8" />
+          <path d="M13 21v5M10.5 23.5h5" />
+        </g>
+        <g className="person-companion__body">
+          {variant === 'female' && <path d="M17 43V29C17 7 55 7 55 29v22H17Z" fill={meta.hair} />}
+          <path d="M17 68c1-22 37-22 38 0" fill={meta.shirt} />
+          <path d="M31 45h10v11c-3.5 4-6.5 4-10 0Z" fill="#efbd9e" />
+          <ellipse cx="36" cy="32" rx="17" ry="20" fill="#ffe0c7" />
+          <path
+            d={variant === 'female'
+              ? 'M19 31C14 9 46 5 53 24v9c-7-3-12-8-16-14-4 6-9 10-18 12Z'
+              : 'M19 29C13 13 28 8 39 10c12-1 17 11 12 21l-5-10c-8 6-14-3-22 3l-3 8Z'}
+            fill={meta.hair}
+          />
+          <g className="person-companion__eyes" fill="#3e3431">
+            <ellipse cx="29.5" cy="33" rx="2" ry="2.8" />
+            <ellipse cx="42.5" cy="33" rx="2" ry="2.8" />
+          </g>
+          <path d="M31 41q5 5 10-1" stroke="#b66f62" strokeWidth="2" strokeLinecap="round" />
+          <circle cx="25" cy="39" r="3" fill="#f3a99d" opacity=".55" />
+          <circle cx="47" cy="39" r="3" fill="#f3a99d" opacity=".55" />
+          {variant === 'female' && <path d="m48 16 7-4 2 8-8 1Z" fill="#ffc2e4" />}
+        </g>
+        <g className="person-companion__hand">
+          <path d="M54 60V47c0-3 4-3 4 0v3-10c0-3 4-3 4 0v10c5-6 8-2 4 3l-3 8c-2 6-9 5-9-1Z" fill="#ffe0c7" stroke="#d59e80" strokeWidth="1" />
+        </g>
+      </svg>
+    </span>
+  );
 }

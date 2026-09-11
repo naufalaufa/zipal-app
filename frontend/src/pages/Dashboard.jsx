@@ -57,8 +57,11 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
                 style={{ border: `2px solid ${colorHighlight}`, backgroundColor: '#e6f7ff', color: colorHighlight }}
             />
          </div>
-         <div style={{display:'flex', flexDirection:'column' , padding : '8px'}}>
-            <span style={{ fontWeight: '600', fontSize:'16px' }}>{name}</span>
+         <div style={{display:'flex', flexDirection:'column', padding:'8px', minWidth:0}}>
+            <span className="balance-person-name" style={{ fontWeight:'600', fontSize:'16px' }}>
+              <span>{name}</span>
+              <PersonCompanion name={name} />
+            </span>
             {screens.md && <span style={{ fontSize: '11px', color: '#8c8c8c' }}>Kontribusi: <b>{contributionPercent.toFixed(1)}%</b></span>}
          </div>
       </div>

@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { Alert, Button, Card, Col, Descriptions, Drawer, Empty, List, Progress, Row, Skeleton, Space, Statistic, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, Drawer, Empty, List, Progress, Row, Skeleton, Space, Statistic, Tag, Typography } from 'antd';
 import { AimOutlined, CalendarOutlined, HeartOutlined, ReloadOutlined, SafetyCertificateOutlined, RiseOutlined } from '@ant-design/icons';
 
 export const CATEGORIES = {
@@ -67,22 +67,29 @@ export function FinancialGoalCard({ goal, onDetail, onEdit, onDelete }) {
 
 export function FinancialGoalDetail({ open, loading, goal, onClose }) {
   const recommended = goal?.due_in_days > 0 && goal.remaining_amount > 0 ? goal.remaining_amount / Math.max(1, Math.ceil(goal.due_in_days / 30)) : null;
-  return <Drawer title="Detail Financial Goal" open={open} onClose={onClose} width={620} className="goal-drawer">
-    {loading ? <Skeleton active /> : !goal ? <Empty description="Detail tidak tersedia" /> : <Space direction="vertical" size="large" style={{ width: '100%' }}>
-      <div><Typography.Title level={3} style={{ marginBottom: 8 }}>{goal.title}</Typography.Title><Space wrap><GoalCategoryBadge category={goal.category} /><GoalStatusBadge status={goal.effective_status} /><Tag>P{goal.effective_priority}</Tag></Space></div>
-      <Card size="small"><Typography.Text type="secondary">Saldo saat ini</Typography.Text><Typography.Title level={2}>{money(goal.current_amount)}</Typography.Title>
+  const detailItems = goal ? [
+    ['Target', money(goal.target_amount)],
+    ['Sisa target', money(goal.remaining_amount)],
+    ['Total deposit', money(goal.total_deposit)],
+    ['Total withdrawal', money(goal.total_withdrawal)],
+    ['Target date', dateText(goal.target_date)],
+    ['Dibuat', dateText(goal.created_at)],
+    ['Terakhir diperbarui', dateText(goal.updated_at)],
+    ['Prioritas', `P${goal.effective_priority || 4}`],
+    ['Transaksi terakhir', dateText(goal.last_transaction)],
+    ['Rekomendasi per bulan', recommended ? money(recommended) : 'Butuh target date'],
+  ] : [];
+
+  return <Drawer title="Detail Financial Goal" open={open} onClose={onClose} width={720} className="goal-drawer">
+    {loading ? <Skeleton active /> : !goal ? <Empty description="Detail tidak tersedia" /> : <div className="goal-detail-content">
+      <header className="goal-detail-header"><Typography.Title level={3}>{goal.title}</Typography.Title><Space size={[4, 6]} wrap><GoalCategoryBadge category={goal.category} /><GoalStatusBadge status={goal.effective_status} /><Tag>P{goal.effective_priority}</Tag></Space></header>
+      <Card size="small" className="goal-balance-card"><Typography.Text type="secondary">Saldo saat ini</Typography.Text><Typography.Title level={2}>{money(goal.current_amount)}</Typography.Title>
         <Progress percent={clampPercent(goal.progress)} format={() => `${safeNumber(goal.progress).toFixed(1)}%`} />
         {goal.refill_deficit > 0 && <Alert type="warning" showIcon message={`Perlu refill ${money(goal.refill_deficit)} untuk kembali ke saldo ideal.`} />}</Card>
-      <Descriptions className="goal-descriptions" column={1} size="small" bordered items={[
-        { key:'target',label:'Target',children:money(goal.target_amount) },{ key:'remaining',label:'Remaining',children:money(goal.remaining_amount) },
-        { key:'deposit',label:'Total deposit',children:money(goal.total_deposit) },{ key:'withdraw',label:'Total withdrawal',children:money(goal.total_withdrawal) },
-        { key:'targetDate',label:'Target date',children:dateText(goal.target_date) },{ key:'created',label:'Dibuat',children:dateText(goal.created_at) },
-        { key:'updated',label:'Terakhir diperbarui',children:dateText(goal.updated_at) },{ key:'priority',label:'Priority',children:`P${goal.effective_priority || 4}` },
-        { key:'last',label:'Transaksi terakhir',children:dateText(goal.last_transaction) },{ key:'monthly',label:'Rekomendasi/bulan',children:recommended ? money(recommended) : 'Butuh target date' }
-      ]} />
-      <div><Typography.Title level={5}>Deskripsi</Typography.Title><Typography.Paragraph type="secondary">{goal.description || 'Belum ada deskripsi.'}</Typography.Paragraph></div>
-      <div><Typography.Title level={5}>Riwayat transaksi</Typography.Title>{goal.transactions?.length ? <List size="small" dataSource={goal.transactions} renderItem={item => <List.Item extra={<Typography.Text type={item.type === 'deposit' ? 'success' : 'danger'}>{item.type === 'deposit' ? '+' : '-'}{money(item.amount)}</Typography.Text>}><List.Item.Meta title={`${item.type === 'deposit' ? 'Deposit' : 'Withdrawal'} · ${dateText(item.date)}`} description={item.description || item.username} /></List.Item>} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Belum ada transaksi teralokasi ke goal ini." />}</div>
-    </Space>}
+      <dl className="goal-detail-grid">{detailItems.map(([label, value]) => <div className="goal-detail-item" key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+      <section className="goal-detail-section"><Typography.Title level={5}>Deskripsi</Typography.Title><Typography.Paragraph type="secondary">{goal.description || 'Belum ada deskripsi.'}</Typography.Paragraph></section>
+      <section className="goal-detail-section"><Typography.Title level={5}>Riwayat transaksi</Typography.Title>{goal.transactions?.length ? <List className="goal-transaction-list" size="small" dataSource={goal.transactions} renderItem={item => <List.Item extra={<Typography.Text type={item.type === 'deposit' ? 'success' : 'danger'}>{item.type === 'deposit' ? '+' : '-'}{money(item.amount)}</Typography.Text>}><List.Item.Meta title={`${item.type === 'deposit' ? 'Deposit' : 'Withdrawal'} · ${dateText(item.date)}`} description={item.description || item.username} /></List.Item>} /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Belum ada transaksi teralokasi ke goal ini." />}</section>
+    </div>}
   </Drawer>;
 }
 
