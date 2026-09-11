@@ -141,12 +141,6 @@ const Dashboard = () => {
     return () => { active = false; };
   }, []);
 
-  const handleTransactionSuccess = () => { fetchSaldo(); refreshHeader(); };
-  // Initial API synchronization intentionally populates the dashboard after mount.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-
-  useEffect(() => { fetchSaldo(); fetchUserAvatars(); }, [fetchUserAvatars]);
-
   const totalWithdrawCalculated = (dataSaldo.total_deposit_overall || 0) - (dataSaldo.grand_total || 0);
   const elegantCardStyle = { borderRadius: '8px', border: '1px solid var(--line)', height: '100%', display: 'flex', flexDirection: 'column' };
 
