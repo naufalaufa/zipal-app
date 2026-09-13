@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Card, Col, Empty, List, Progress, Row, Segmented, Skeleton, Space, Statistic, Typography } from 'antd';
-import { AreaChartOutlined, BulbOutlined, SafetyCertificateOutlined, WarningOutlined } from '@ant-design/icons';
+import { Alert, Card, Col, Empty, List, Progress, Row, Segmented, Skeleton, Space, Statistic, Tag, Typography } from 'antd';
+import { AreaChartOutlined } from '@ant-design/icons';
 import { Chart as ChartJS, ArcElement, BarElement, CategoryScale, Filler, Legend, LineElement, LinearScale, PointElement, Tooltip } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { HeadNavbar } from '../components';
@@ -13,6 +13,18 @@ import '../features/financialGoals.css';
 ChartJS.register(ArcElement, BarElement, CategoryScale, Filler, Legend, LineElement, LinearScale, PointElement, Tooltip);
 const colors = ['#1677ff','#69b1ff','#13c2c2','#52c41a','#eb2f96'];
 const chartOptions = { responsive:true, maintainAspectRatio:false, animation: { duration:1000, easing:'easeOutQuart', animateRotate:true, animateScale:true }, plugins:{ legend:{ position:'bottom' } } };
+const insightCopy = {
+  PROTECTION: { name:'Dana Proteksi', purpose:'Dana ini menjadi bantalan ketika ada kebutuhan mendadak.' },
+  PLANNED: { name:'Tujuan Terencana', purpose:'Dana ini membantu rencana yang memiliki tujuan dan batas waktu yang jelas.' },
+  RECURRING: { name:'Kebutuhan Berkala', purpose:'Dana ini disiapkan untuk pengeluaran yang datang berulang.' },
+  ASSET: { name:'Aset & Masa Depan', purpose:'Dana ini digunakan untuk membangun aset dan rencana jangka panjang.' },
+  SOCIAL: { name:'Sosial & Keluarga', purpose:'Dana ini disiapkan untuk kebutuhan keluarga dan kegiatan sosial.' },
+};
+const toneMeta = {
+  success: { label:'Baik', color:'success' },
+  warning: { label:'Perlu perhatian', color:'warning' },
+  danger: { label:'Rendah', color:'error' },
+};
 
 export default function FinancialAnalytics() {
   const requestSequence = useRef(0);
@@ -30,13 +42,60 @@ export default function FinancialAnalytics() {
       refill:data.goals.filter(g => g.effective_status === 'NEEDS_REFILL'),completed:data.goals.filter(g => ['COMPLETED','TARGET_REACHED'].includes(g.effective_status)) };
   }, [data]);
   const insights = useMemo(() => {
-    const items=[];
-    if (metrics.protectionHealth != null && metrics.protectionHealth < 80) items.push({ icon:<WarningOutlined />, title:'Dana Proteksi Rendah', text:`Dana proteksi baru mencapai ${metrics.protectionHealth.toFixed(1)}% dari target.` });
-    if (metrics.refill.length) { const largest=[...metrics.refill].sort((a,b)=>b.refill_deficit-a.refill_deficit)[0]; items.push({ icon:<SafetyCertificateOutlined />, title:'Prioritas Bulan Ini', text:`${largest.title} memiliki refill deficit terbesar: ${money(largest.refill_deficit)}.` }); }
-    const asset=data.goals.find(g=>g.category==='ASSET' && g.progress>=100); if(asset) items.push({ icon:<BulbOutlined />,title:'Milestone Aset Tercapai',text:`${asset.title} sudah mencapai ${asset.progress.toFixed(1)}% dan dapat terus bertumbuh.` });
-    if(data.trend.length>=2){const a=data.trend.at(-2).balance,b=data.trend.at(-1).balance;if(a>0)items.push({icon:<AreaChartOutlined />,title:'Savings Growth',text:`Saldo ${b>=a?'meningkat':'menurun'} ${Math.abs((b-a)/a*100).toFixed(1)}% dibanding periode sebelumnya.`});}
-    return items;
-  },[data,metrics]);
+    const categoryItems = Object.entries(insightCopy).map(([category, copy]) => {
+      const goals = data.goals.filter(goal => goal.category === category);
+      const target = goals.reduce((sum, goal) => sum + goal.target_amount, 0);
+      const current = goals.reduce((sum, goal) => sum + goal.current_amount, 0);
+      const progress = target ? current / target * 100 : 0;
+      const reached = goals.filter(goal => goal.progress >= 100 || ['COMPLETED','TARGET_REACHED'].includes(goal.effective_status));
+      const needsRefill = goals.filter(goal => goal.effective_status === 'NEEDS_REFILL');
+      let tone = 'warning';
+      let title = `${copy.name} Belum Disiapkan`;
+      let text = `Belum ada tujuan dalam kategori ${copy.name}. Tambahkan dari halaman Purpose agar kondisinya dapat dipantau. ${copy.purpose}`;
+
+      if (goals.length) {
+        tone = needsRefill.length || progress < 50 ? 'danger' : progress < 80 ? 'warning' : 'success';
+        if (category === 'ASSET' && reached.length) title = 'Milestone Aset Tercapai';
+        else if (tone === 'success') title = `${copy.name} dalam Kondisi Baik`;
+        else if (tone === 'warning') title = `${copy.name} Perlu Diperkuat`;
+        else title = `${copy.name} Rendah`;
+
+        const condition = tone === 'success'
+          ? 'Kondisinya sudah baik; pertahankan kebiasaan pengisiannya.'
+          : tone === 'warning'
+            ? 'Kondisinya berada di tengah dan masih perlu ditingkatkan secara bertahap.'
+            : 'Kondisinya masih rendah dan sebaiknya menjadi perhatian lebih dahulu.';
+        const refillText = needsRefill.length ? ` ${needsRefill.length} tujuan membutuhkan isi ulang.` : '';
+        const reachedText = reached.length ? ` ${reached.length} tujuan sudah mencapai target.` : '';
+        text = `${goals.length} tujuan saat ini mencapai ${progress.toFixed(1)}% dari total target. ${condition}${refillText}${reachedText} ${copy.purpose}`;
+      }
+
+      return { key:category, icon:CATEGORIES[category]?.icon, title, text, tone, progress, hasGoals:goals.length > 0, completed:reached.length > 0 };
+    });
+
+    let growth = { key:'growth', icon:<AreaChartOutlined />, title:'Tren Tabungan Belum Terbaca', text:'Belum ada minimal dua periode transaksi yang teralokasi. Setelah datanya cukup, bagian ini akan membandingkan pertumbuhan saldo dengan periode sebelumnya.', tone:'warning' };
+    if (data.trend.length >= 2) {
+      const previous = data.trend.at(-2).balance;
+      const current = data.trend.at(-1).balance;
+      const change = previous > 0 ? (current - previous) / previous * 100 : null;
+      const tone = current > previous ? 'success' : current < previous ? 'danger' : 'warning';
+      growth = {
+        key:'growth', icon:<AreaChartOutlined />,
+        title: tone === 'success' ? 'Saldo Sedang Bertumbuh' : tone === 'danger' ? 'Saldo Sedang Menurun' : 'Saldo Belum Berubah',
+        text: change == null
+          ? `Saldo periode terbaru berada di ${money(current)}. Perbandingan persentase akan tersedia setelah saldo periode sebelumnya lebih dari nol.`
+          : `Saldo ${current >= previous ? 'meningkat' : 'menurun'} ${Math.abs(change).toFixed(1)}% dibanding periode sebelumnya, dari ${money(previous)} menjadi ${money(current)}.`,
+        tone,
+      };
+    }
+    return [...categoryItems, growth].sort((first, second) => {
+      if (Boolean(first.completed) !== Boolean(second.completed)) return second.completed ? 1 : -1;
+      const progressDifference = safeNumber(second.progress ?? -1) - safeNumber(first.progress ?? -1);
+      if (progressDifference) return progressDifference;
+      if (Boolean(first.hasGoals) !== Boolean(second.hasGoals)) return second.hasGoals ? 1 : -1;
+      return 0;
+    });
+  },[data]);
   if (error) return <div><HeadNavbar title="Financial Analytics" icon={<AreaChartOutlined />} description="Kesehatan dan perkembangan tujuan keuangan" /><main className="financial-page"><Alert type="error" showIcon message={error} /></main></div>;
   const lineData={labels:data.trend.map(x=>x.period),datasets:[{label:'Total saldo teralokasi',data:data.trend.map(x=>x.balance),borderColor:'#1677ff',backgroundColor:'rgba(22,119,255,.12)',fill:true,tension:.35}]};
   const barData={labels:data.trend.map(x=>x.period),datasets:[{label:'Deposit',data:data.trend.map(x=>x.deposits),backgroundColor:'#69b1ff'},{label:'Withdrawal',data:data.trend.map(x=>x.withdrawals),backgroundColor:'#ff7875'},{label:'Net Saving',data:data.trend.map(x=>x.net),backgroundColor:'#95de64'}]};
@@ -45,12 +104,15 @@ export default function FinancialAnalytics() {
     <div className="page-toolbar"><div><Typography.Title level={2} style={{margin:0}}>Financial Analytics</Typography.Title><Typography.Text type="secondary">Trend, distribusi, kesehatan, dan tindakan berikutnya.</Typography.Text></div><Segmented value={period} onChange={setPeriod} options={['1M','3M','6M','1Y','ALL']} /></div>
     {Number(data.coverage.total||0)>Number(data.coverage.allocated||0)&&<Alert className="coverage-note" type="info" showIcon message="Cakupan histori per-goal terbatas" description={`${data.coverage.allocated||0} dari ${data.coverage.total||0} transaksi memiliki alokasi goal. Grafik tidak mengarang alokasi transaksi legacy.`}/>} 
     <Row gutter={[12,12]} className="goal-summary">{[['Total Goal Balance',money(metrics.balance)],['Net Savings Growth',money(metrics.net)],['Total Deposit',money(metrics.deposits)],['Total Withdrawal',money(metrics.withdrawals)],['Overall Progress',`${metrics.progress.toFixed(1)}%`],['Protection Health',metrics.protectionHealth==null?'—':`${metrics.protectionHealth.toFixed(1)}%`],['Needs Refill',metrics.refill.length],['Completed',metrics.completed.length]].map(([t,v])=><Col xs={12} md={6} key={t}><Card size="small"><Skeleton loading={loading} paragraph={false}><Statistic title={t} value={v}/></Skeleton></Card></Col>)}</Row>
-    <Row gutter={[16,16]} className="analytics-grid"><Col xs={24} xl={14}><Card title="Savings Growth"><AnalyticsChart loading={loading}>{data.trend.length?<Line data={lineData} options={animatedOptions}/>:<Empty description="Belum ada data trend teralokasi"/>}</AnalyticsChart></Card></Col><Col xs={24} xl={10}><Card title="Asset Allocation"><AnalyticsChart loading={loading}>{metrics.balance?<Doughnut data={donutData} options={animatedOptions}/>:<Empty description="Belum ada saldo goal"/>}</AnalyticsChart></Card></Col>
-      <Col xs={24} xl={14}><Card title="Deposit vs Withdrawal"><AnalyticsChart loading={loading}>{data.trend.length?<Bar data={barData} options={animatedOptions}/>:<Empty description="Belum ada transaksi teralokasi"/>}</AnalyticsChart></Card></Col>
+    <Row gutter={[16,16]} className="analytics-grid"><Col xs={24} xl={14}><Card title="Savings Growth"><AnalyticsChart loading={loading}>{data.trend.length?<Line data={lineData} options={animatedOptions}/>:<Empty className="chart-empty-state" description="Belum ada data trend teralokasi"/>}</AnalyticsChart></Card></Col><Col xs={24} xl={10}><Card title="Asset Allocation"><AnalyticsChart loading={loading}>{metrics.balance?<Doughnut data={donutData} options={animatedOptions}/>:<Empty className="chart-empty-state" description="Belum ada saldo goal"/>}</AnalyticsChart></Card></Col>
+      <Col xs={24} xl={14}><Card title="Deposit vs Withdrawal"><AnalyticsChart loading={loading}>{data.trend.length?<Bar data={barData} options={animatedOptions}/>:<Empty className="chart-empty-state" description="Belum ada transaksi teralokasi"/>}</AnalyticsChart></Card></Col>
       <Col xs={24} xl={10}><Card title="Protection Health"><Space direction="vertical" style={{width:'100%'}}>{metrics.protectionHealth!=null&&<Progress type="dashboard" percent={Number(metrics.protectionHealth.toFixed(1))}/>} {data.goals.filter(g=>g.category==='PROTECTION').map(g=><div key={g.id}><Space style={{justifyContent:'space-between',width:'100%'}}><span>{g.title}</span><span>{g.progress.toFixed(1)}%</span></Space><Progress percent={Math.min(g.progress,100)} showInfo={false}/></div>)}</Space></Card></Col>
       <Col xs={24} lg={12}><Card title="Goal Progress"><List dataSource={[...data.goals].sort((a,b)=>b.progress-a.progress)} locale={{emptyText:'Belum ada goal'}} renderItem={g=><List.Item extra={<GoalStatusBadge status={g.effective_status}/>}><List.Item.Meta title={g.title} description={<Progress percent={Math.min(g.progress,100)} format={()=>`${g.progress.toFixed(1)}%`}/>} /></List.Item>}/></Card></Col>
       <Col xs={24} lg={12}><Card title="Refill Analytics"><Statistic title="Total Refill Deficit" value={money(metrics.refill.reduce((s,g)=>s+g.refill_deficit,0))}/><List dataSource={[...metrics.refill].sort((a,b)=>b.refill_deficit-a.refill_deficit)} locale={{emptyText:'Tidak ada goal yang membutuhkan refill'}} renderItem={g=><List.Item extra={money(g.refill_deficit)}>{g.title}</List.Item>}/></Card></Col>
-      <Col span={24}><Card title="Financial Insights" className="insight-list"><List dataSource={insights} locale={{emptyText:'Belum cukup data untuk menghasilkan insight.'}} renderItem={item=><List.Item><List.Item.Meta avatar={item.icon} title={item.title} description={item.text}/></List.Item>}/></Card></Col>
+      <Col span={24}><Card title="Financial Insights" className="insight-list">
+        <div className="insight-intro"><div><Typography.Text strong>Ringkasan kondisi keuangan saat ini</Typography.Text><Typography.Paragraph type="secondary">Setiap kategori selalu ditampilkan agar kamu tahu mana yang sudah sehat, perlu diperhatikan, atau masih rendah. Warna ini adalah petunjuk, bukan penilaian mutlak.</Typography.Paragraph></div><Space wrap><Tag color="success">Baik</Tag><Tag color="warning">Perlu perhatian</Tag><Tag color="error">Rendah</Tag></Space></div>
+        <List dataSource={insights} renderItem={item=>{const status=toneMeta[item.tone];return <List.Item><div className={`insight-card insight-card--${item.tone}`}><span className="insight-card__icon">{item.icon}</span><div className="insight-card__content"><div className="insight-card__title"><Typography.Title level={5}>{item.title}</Typography.Title><Tag color={status.color}>{status.label}</Tag></div><Typography.Paragraph>{item.text}</Typography.Paragraph>{item.hasGoals&&Number.isFinite(item.progress)&&<Progress percent={Math.min(item.progress,100)} status={item.tone==='danger'?'exception':item.tone==='success'?'success':'normal'} strokeColor={item.tone==='warning'?'#fa8c16':undefined} format={()=>`${item.progress.toFixed(1)}%`}/>}</div></div></List.Item>;}}/>
+      </Card></Col>
     </Row>
   </main></div>;
 }

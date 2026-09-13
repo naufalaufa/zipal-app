@@ -47,8 +47,8 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
   const cashShare = (contributionPercent / 100) * grandTotal;
 
   return (
-    <div style={{ display: 'flex', flexDirection: screens.md ? 'row' : 'column', alignItems: screens.md ? 'center' : 'stretch', justifyContent: 'space-between', gap: screens.md ? '16px' : '12px', width: '100%', minWidth: 0 }}>
-      <div style={{display:'flex', alignItems: 'center', gap: '12px', minWidth: 0}}>
+    <div className="balance-title">
+      <div className="balance-title__identity">
          <div onClick={() => setIsPreviewOpen(true)} style={{ cursor: 'pointer' }}>
             <Avatar 
                 src={avatarUrl} 
@@ -57,7 +57,7 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
                 style={{ border: `2px solid ${colorHighlight}`, backgroundColor: '#e6f7ff', color: colorHighlight }}
             />
          </div>
-         <div style={{display:'flex', flexDirection:'column', padding:'8px', minWidth:0}}>
+         <div className="balance-title__copy">
             <span className="balance-person-name" style={{ fontWeight:'600', fontSize:'16px' }}>
               <span>{name}</span>
               <PersonCompanion name={name} />
@@ -66,7 +66,7 @@ const BalanceTitle = ({ name, avatarUrl, userTotalDeposit, totalDepositOverall, 
          </div>
       </div>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: screens.md ? 'flex-start' : 'center', gap: '8px', minWidth: 0, width: screens.md ? 'auto' : '100%', fontSize: '13px', background:'var(--surface-soft)', padding: screens.md ? '5px 12px' : '9px 10px', borderRadius:'8px', border: '1px solid var(--line)' }}>
+      <div className="balance-title__cash-share">
           <Tooltip title="Porsi tunai berdasarkan persentase deposit."><InfoCircleOutlined style={{color: colorHighlight}}/></Tooltip>
           <span style={{ whiteSpace:'nowrap' }}>Porsi Tunai:</span>
           <span style={{ fontWeight: 'bold', color: isVisible ? colorHighlight : '#8c8c8c', minWidth:0, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{isVisible ? formatRupiahSimple(cashShare) : 'Rp ••••••••'}</span>
@@ -148,15 +148,15 @@ const Dashboard = () => {
   const elegantCardStyle = { borderRadius: '8px', border: '1px solid var(--line)', height: '100%', display: 'flex', flexDirection: 'column' };
 
   return (
-    <div style={{ paddingBottom: '40px' }}>
+    <div className="dashboard-page">
       <HeadNavbar title="Zipal Dashboard" icon={<DashboardOutlined/>} description="Statistik Keuangan Real-Time Naufal & Zihra" />
 
       {/* SECTION 1: Ringkasan Saldo */}
       <div style={{ marginBottom: '40px' }}>
         <Row justify="center" gutter={[24, 24]}>
-          <Col xs={24} md={8}><Card style={{ ...elegantCardStyle, height: '130px', justifyContent: 'center', alignItems: 'center' }}><SaldoTotalIn total={dataSaldo.total_deposit_overall} /></Card></Col>
-          <Col xs={24} md={8}><Card style={{ ...elegantCardStyle, height: '130px', justifyContent: 'center', alignItems: 'center' }}><SaldoAllWithDraw total={totalWithdrawCalculated} /></Card></Col>
-          <Col xs={24} md={8}><Card style={{ ...elegantCardStyle, height: '130px', justifyContent: 'center', alignItems: 'center' }}><SaldoAvailable total={dataSaldo.grand_total} /></Card></Col>
+          <Col xs={24} md={8}><Card className="summary-balance-card" style={elegantCardStyle}><SaldoTotalIn total={dataSaldo.total_deposit_overall} /></Card></Col>
+          <Col xs={24} md={8}><Card className="summary-balance-card" style={elegantCardStyle}><SaldoAllWithDraw total={totalWithdrawCalculated} /></Card></Col>
+          <Col xs={24} md={8}><Card className="summary-balance-card" style={elegantCardStyle}><SaldoAvailable total={dataSaldo.grand_total} /></Card></Col>
         </Row>
       </div>
       
@@ -170,8 +170,9 @@ const Dashboard = () => {
             const isNaufal = user === 'naufalaufa';
             
             return (
-              <Col xs={24} lg={12} key={user}>
+              <Col xs={24} xxl={12} key={user}>
                 <Card 
+                  className="user-finance-card"
                   style={elegantCardStyle}
                   title={<BalanceTitle 
                           name={isNaufal ? "Naufal Aufa" : "Zihra Angelina"} 
@@ -187,13 +188,7 @@ const Dashboard = () => {
                     <Col span={24}>
                       <Card title={`Total Deposit ${isNaufal ? 'Naufal' : 'Zihra'} 💴`} variant="borderless" type="inner">
                         <StatisticWithHide value={isNaufal ? dataSaldo.total_deposit_naufal : dataSaldo.total_deposit_zihra} color={isNaufal ? "#3f8600" : "#d48806"} />
-                        <div style={{ 
-                          marginTop: '15px', 
-                          display: 'flex', 
-                          flexDirection: screens.md ? 'row' : 'column', 
-                          gap: '10px', 
-                          alignItems: 'stretch' 
-                        }}>
+                        <div className="transaction-actions">
                             <DepositModal 
                                 name={`Deposit ${isNaufal ? 'Naufal' : 'Zihra'} 💴`} 
                                 username={user} 
@@ -214,12 +209,7 @@ const Dashboard = () => {
                       <Card title={`Total Withdraw ${isNaufal ? 'Naufal' : 'Zihra'} 💴`} variant="borderless" type="inner">
                          <StatisticWithHide value={isNaufal ? dataSaldo.withdraw_naufal : dataSaldo.withdraw_zihra} color="#cf1322" />
                          <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={{ 
-                              display: 'flex', 
-                              flexDirection: screens.md ? 'row' : 'column', 
-                              gap: '10px', 
-                              alignItems: 'stretch' 
-                            }}>
+                            <div className="transaction-actions">
                               <WithdrawModal 
                                   name={`Withdraw ${isNaufal ? 'Naufal' : 'Zihra'} 💴`} 
                                   username={user} 
