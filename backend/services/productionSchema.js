@@ -31,7 +31,13 @@ const ensureAgreementSchema = pool => {
             CONSTRAINT fk_application_agreement FOREIGN KEY (agreement_id) REFERENCES agreements(id) ON DELETE RESTRICT
         ) ENGINE=InnoDB`);
         const content = JSON.stringify(template);
-        await db.execute('INSERT IGNORE INTO agreements (id, agreement_number, content_json, content_hash) VALUES (1, ?, ?, ?)', [template.number, content, createHash('sha256').update(content).digest('hex')]);
+        const contentHash = createHash('sha256').update(content).digest('hex');
+        await db.execute('INSERT IGNORE INTO agreements (id, agreement_number, content_json, content_hash) VALUES (1, ?, ?, ?)', [template.number, content, contentHash]);
+        await db.execute(`UPDATE agreements agreement
+            SET agreement_number = ?, content_json = ?, content_hash = ?
+            WHERE agreement.id = 1 AND agreement.status = 'DRAFT' AND agreement.content_hash <> ?
+              AND NOT EXISTS (SELECT 1 FROM agreement_applications application WHERE application.agreement_id = agreement.id)`,
+        [template.number, content, contentHash, contentHash]);
     })().catch(error => { agreementPromise = undefined; throw error; });
     return agreementPromise;
 };
