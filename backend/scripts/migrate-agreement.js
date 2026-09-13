@@ -15,8 +15,14 @@ async function main() {
         const sql = fs.readFileSync(path.join(__dirname, '../migrations/002-agreement-workflow.sql'), 'utf8');
         for (const statement of sql.split(';').filter(part => part.trim())) await connection.query(statement);
         const content = JSON.stringify(template);
-        await connection.execute('INSERT IGNORE INTO agreements (id, agreement_number, content_json, content_hash) VALUES (1, ?, ?, ?)', [template.number, content, createHash('sha256').update(content).digest('hex')]);
-        console.log('Agreement migration selesai. Data lama dipertahankan; isi versi yang sudah ada tidak ditimpa.');
+        const contentHash = createHash('sha256').update(content).digest('hex');
+        await connection.execute('INSERT IGNORE INTO agreements (id, agreement_number, content_json, content_hash) VALUES (1, ?, ?, ?)', [template.number, content, contentHash]);
+        const [result] = await connection.execute(`UPDATE agreements agreement
+            SET agreement_number = ?, content_json = ?, content_hash = ?
+            WHERE agreement.id = 1 AND agreement.status = 'DRAFT' AND agreement.content_hash <> ?
+              AND NOT EXISTS (SELECT 1 FROM agreement_applications application WHERE application.agreement_id = agreement.id)`,
+        [template.number, content, contentHash, contentHash]);
+        console.log(result.affectedRows ? 'Agreement DRAFT diperbarui ke naskah terbaru.' : 'Agreement migration selesai. Versi terkunci atau naskah yang sama tidak ditimpa.');
     } finally { await connection.end(); }
 }
 main().catch(error => { console.error('Migration gagal:', error.message); process.exitCode = 1; });

@@ -23,7 +23,7 @@ npm run build
 
 `--legacy-peer-deps` diperlukan oleh peer dependency Cloudinary yang sudah ada di project; fitur ini menambahkan `pdf-lib` dan `pngjs` saja. File package-lock ikut diperbarui.
 
-Migration memakai koneksi `DB_*` dari `backend/.env` atau environment hosting. Backup database terlebih dahulu. Script `scripts/migrate-agreement.js` menjalankan `migrations/002-agreement-workflow.sql`, kemudian menyimpan isi asli ketujuh pasal dari `data/agreementTemplate.json` dan hash SHA-256-nya sebagai versi pertama. Script boleh dijalankan ulang: versi yang sudah tersimpan, tanda tangan, dan PDF tidak ditimpa. Perubahan JSON di source tidak mengubah perjanjian yang sudah dibuat.
+Migration memakai koneksi `DB_*` dari `backend/.env` atau environment hosting. Backup database terlebih dahulu. Script `scripts/migrate-agreement.js` menjalankan `migrations/002-agreement-workflow.sql`, kemudian menyimpan isi ketujuh pasal dari `data/agreementTemplate.json` dan hash SHA-256-nya. Script boleh dijalankan ulang. Revisi dari JSON hanya disinkronkan ketika perjanjian masih `DRAFT` dan belum memiliki Apply; setelah ada tanda tangan atau status berubah, versi yang tersimpan, tanda tangan, dan PDF tidak ditimpa.
 
 Dua tabel baru: `agreements` menyimpan nomor, snapshot isi, hash, status, metadata pengesahan, dan dua PDF; `agreement_applications` menyimpan ID agreement, ID pengguna, pihak, PNG, applied, signed_at UTC, dan hash versi yang disetujui. Tabel menggunakan InnoDB. ID pengguna divalidasi terhadap tabel users pada setiap request. Unique constraints membatasi satu Apply per pengguna/pihak/perjanjian.
 
