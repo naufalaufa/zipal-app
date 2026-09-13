@@ -14,6 +14,19 @@ test('PNG signature validation rejects empty, spoofed and oversized input', () =
     assert.throws(() => validateSignature('data:image/png;base64,' + 'A'.repeat(100000)));
     assert.ok(validateSignature(sampleSignature()).startsWith('data:image/png;base64,'));
 });
+test('status updates only an unsigned stale DRAFT to the latest agreement text', async () => {
+    const { pool, state } = memoryPool();
+    state.agreement.content_json = { title:'Naskah lama' }; state.agreement.content_hash = 'stale';
+    const updated = await createAgreementStore(pool).status(users[0]);
+    assert.equal(updated.content_hash, hash);
+    assert.match(updated.content.clauses[6].content, /berdasarkan jumlah total nominal kontribusi/i);
+
+    state.agreement.content_json = { title:'Naskah bertanda tangan' }; state.agreement.content_hash = 'signed-version';
+    state.signatures.push({ party:'zihra', applied:1, content_hash:'signed-version' });
+    const locked = await createAgreementStore(pool).status(users[0]);
+    assert.equal(locked.content_hash, 'signed-version');
+    assert.equal(locked.content.title, 'Naskah bertanda tangan');
+});
 test('workflow persists signatures, serializes approval, and locks FINAL', async () => {
     const { pool, state } = memoryPool();
     const store = createAgreementStore(pool);

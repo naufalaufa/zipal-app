@@ -32,7 +32,13 @@ function memoryPool() {
         }
         throw new Error('Unexpected read: ' + sql);
     }
-    const pool = { promise: () => ({ query: async (sql, values) => read(sql, values), getConnection: async () => {
+    const directExecute = async (sql, values) => {
+        if (!sql.startsWith('UPDATE agreements agreement')) throw new Error('Unexpected direct write: ' + sql);
+        const eligible = state.agreement.status === 'DRAFT' && state.agreement.content_hash !== values[3] && state.signatures.length === 0;
+        if (eligible) Object.assign(state.agreement, { agreement_number:values[0], content_json:JSON.parse(values[1]), content_hash:values[2] });
+        return [{ affectedRows:eligible ? 1 : 0 }];
+    };
+    const pool = { promise: () => ({ query: async (sql, values) => read(sql, values), execute:directExecute, getConnection: async () => {
         let unlock, snapshot;
         return {
             beginTransaction: async () => {},

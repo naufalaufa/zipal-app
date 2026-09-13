@@ -2,7 +2,7 @@ const { createHash } = require('crypto');
 const { fail, assertMember, assertSign, assertApprove, assertFinalize } = require('./agreementPolicy');
 const { validateSignature, validateFinalPdf } = require('./agreementFiles');
 const { generateAgreementPdf } = require('./agreementPdf');
-const { ensureAgreementSchema } = require('./productionSchema');
+const { ensureAgreementSchema, syncAgreementTemplate } = require('./productionSchema');
 const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 const AGREEMENT_ID = 1;
 const iso = value => value ? new Date(value).toISOString() : null;
@@ -53,7 +53,10 @@ function createAgreementStore(pool, generatePdf = generateAgreementPdf) {
             await ensureAgreementSchema(pool);
             [signatures] = await pool.promise().query(SIGNATURES_SQL, [AGREEMENT_ID]);
         }
-        const agreement = rows[0];
+        let agreement = rows[0];
+        const synchronized = await syncAgreementTemplate(pool, agreement, signatures);
+        if (synchronized) agreement = { ...agreement, agreement_number:synchronized.agreementNumber,
+            content_json:synchronized.content, content_hash:synchronized.contentHash };
         return { ...agreement, content: typeof agreement.content_json === 'string' ? JSON.parse(agreement.content_json) : agreement.content_json, content_json: undefined, signatures, viewer: user };
     }
     async function sign(user, input) {

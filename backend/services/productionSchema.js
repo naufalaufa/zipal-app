@@ -4,6 +4,20 @@ const template = require('../data/agreementTemplate.json');
 let agreementPromise;
 let transactionPromise;
 let financialGoalPromise;
+const agreementTemplateSnapshot = () => {
+    const content = JSON.stringify(template);
+    return { agreementNumber:template.number, content, contentHash:createHash('sha256').update(content).digest('hex') };
+};
+const syncAgreementTemplate = async (pool, agreement, signatures = []) => {
+    const snapshot = agreementTemplateSnapshot();
+    if (agreement?.status !== 'DRAFT' || agreement.content_hash === snapshot.contentHash || signatures.length) return null;
+    const [result] = await pool.promise().execute(`UPDATE agreements agreement
+        SET agreement_number = ?, content_json = ?, content_hash = ?
+        WHERE agreement.id = 1 AND agreement.status = 'DRAFT' AND agreement.content_hash <> ?
+          AND NOT EXISTS (SELECT 1 FROM agreement_applications application WHERE application.agreement_id = agreement.id)`,
+    [snapshot.agreementNumber, snapshot.content, snapshot.contentHash, snapshot.contentHash]);
+    return result.affectedRows ? snapshot : null;
+};
 const ensureAgreementSchema = pool => {
     if (agreementPromise) return agreementPromise;
     agreementPromise = (async () => {
@@ -30,14 +44,13 @@ const ensureAgreementSchema = pool => {
             UNIQUE KEY uq_agreement_user (agreement_id, user_id),
             CONSTRAINT fk_application_agreement FOREIGN KEY (agreement_id) REFERENCES agreements(id) ON DELETE RESTRICT
         ) ENGINE=InnoDB`);
-        const content = JSON.stringify(template);
-        const contentHash = createHash('sha256').update(content).digest('hex');
-        await db.execute('INSERT IGNORE INTO agreements (id, agreement_number, content_json, content_hash) VALUES (1, ?, ?, ?)', [template.number, content, contentHash]);
-        await db.execute(`UPDATE agreements agreement
-            SET agreement_number = ?, content_json = ?, content_hash = ?
-            WHERE agreement.id = 1 AND agreement.status = 'DRAFT' AND agreement.content_hash <> ?
-              AND NOT EXISTS (SELECT 1 FROM agreement_applications application WHERE application.agreement_id = agreement.id)`,
-        [template.number, content, contentHash, contentHash]);
+        const snapshot = agreementTemplateSnapshot();
+        const [insert] = await db.execute('INSERT IGNORE INTO agreements (id, agreement_number, content_json, content_hash) VALUES (1, ?, ?, ?)', [snapshot.agreementNumber, snapshot.content, snapshot.contentHash]);
+        if (!insert.affectedRows) {
+            const [rows] = await db.query('SELECT status,content_hash FROM agreements WHERE id=1');
+            const [signatures] = await db.query('SELECT id FROM agreement_applications WHERE agreement_id=1 LIMIT 1');
+            await syncAgreementTemplate(pool, rows[0], signatures);
+        }
     })().catch(error => { agreementPromise = undefined; throw error; });
     return agreementPromise;
 };
@@ -104,4 +117,4 @@ const ensureFinancialGoalSchema = pool => {
     return financialGoalPromise;
 };
 
-module.exports = { ensureAgreementSchema, ensureTransactionGoalSchema, ensureFinancialGoalSchema };
+module.exports = { ensureAgreementSchema, ensureTransactionGoalSchema, ensureFinancialGoalSchema, syncAgreementTemplate };
