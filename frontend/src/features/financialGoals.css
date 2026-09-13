@@ -18,6 +18,11 @@
 .goal-filter-asset.ant-btn-primary { border-color:#389e0d; background:#389e0d; }
 .goal-filter-social:not(.ant-btn-primary) { color:#c41d7f; border-color:#ffadd2; background:#fff0f6; }
 .goal-filter-social.ant-btn-primary { border-color:#c41d7f; background:#c41d7f; }
+.goal-order-hint { margin:0 0 16px; border-radius:10px; }
+.goal-sort-item { transition:opacity .18s ease, transform .18s ease; }
+.goal-sort-item > .goal-card { transition:border-color .18s ease, box-shadow .18s ease, transform .18s ease; }
+.goal-sort-item--dragging { opacity:.42; transform:scale(.985); }
+.goal-sort-item--target > .goal-card { border-color:#8c8cff; box-shadow:0 0 0 3px rgba(99,102,241,.16),0 8px 24px rgba(15,23,42,.12); transform:translateY(-2px); }
 .goal-card { height:100%; border:1px solid #edf0f5; border-radius:12px; overflow:hidden; }
 .goal-card-protection { border-top:3px solid #1677ff; }
 .goal-card-planned { border-top:3px solid #597ef7; }
@@ -31,8 +36,11 @@
 .goal-card-recurring .goal-icon { color:#08979c; background:#e6fffb; }
 .goal-card-asset .goal-icon { color:#389e0d; background:#f6ffed; }
 .goal-card-social .goal-icon { color:#c41d7f; background:#fff0f6; }
-.goal-title-wrap { min-width:0; display:flex; gap:6px; flex-direction:column; }
+.goal-title-wrap { min-width:0; display:flex; gap:6px; flex:1; flex-direction:column; }
 .goal-title { line-height:1.35; overflow-wrap:anywhere; }
+.goal-drag-handle { flex:none; color:var(--text-muted); cursor:grab; touch-action:none; }
+.goal-drag-handle:hover { color:#5b5bd6 !important; background:rgba(99,102,241,.1) !important; }
+.goal-drag-handle:active { cursor:grabbing; }
 .goal-money { display:flex; justify-content:space-between; align-items:end; gap:8px; margin-top:16px; }
 .goal-money strong { font-size:18px; overflow-wrap:anywhere; }
 .goal-money span { font-size:12px; color:#8c8c8c; text-align:right; }
@@ -41,6 +49,8 @@
 .goal-action-edit:hover { color:#fff !important; border-color:#1677ff !important; background:#1677ff !important; }
 .goal-action-delete { color:#cf1322 !important; border-color:#ffa39e !important; background:#fff1f0 !important; }
 .goal-action-delete:hover { color:#fff !important; border-color:#ff4d4f !important; background:#ff4d4f !important; }
+.goal-order-button { color:#5b5bd6; border-color:#c7d2fe; background:#eef2ff; }
+.goal-order-button:not(:disabled):hover { color:#fff !important; border-color:#6366f1 !important; background:#6366f1 !important; }
 .goal-priority { margin-left:auto; margin-inline-end:0; }
 .goal-drawer .ant-drawer-content-wrapper { max-width:100vw; }
 .goal-drawer .ant-drawer-close { display:grid; width:40px; height:40px; margin-inline-end:8px; padding:0; place-items:center; border-radius:8px; }
@@ -116,6 +126,7 @@
   .goal-filter { flex:1 1 calc(50% - 6px); min-width:0; padding-inline:8px; }
   .goal-filter:first-child { flex-basis:100%; }
   .goal-card .ant-card-body { padding:14px; }
+  .goal-order-hint .ant-alert-description { line-height:1.5; }
   .goal-money { align-items:flex-start; flex-direction:column; }
   .goal-money span { text-align:left; }
   .goal-actions .ant-btn { flex:1 1 auto; }

@@ -32,7 +32,7 @@ const GuideTour = ({ role, isMobile, navigationOpen, onNavigationVisibilityChang
       },
       {
         title: 'Dashboard — ruang kontrol utama',
-        description: 'Gunakan halaman ini untuk melihat keadaan uang saat ini, membandingkan kontribusi Naufal dan Zihra, serta mencatat uang masuk atau keluar.',
+        description: 'Gunakan halaman ini untuk melihat keadaan uang saat ini, Melihat Perkembangan dari zihra dan naufal total masuk dan total keluar, serta mencatat uang masuk atau keluar.',
         target: () => visibleMenuTarget('[data-guide="menu-dashboard"]'),
       },
       {

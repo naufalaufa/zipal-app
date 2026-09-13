@@ -57,7 +57,7 @@ const ensureFinancialGoalSchema = pool => {
         const definitions = {
             category: "ENUM('PROTECTION','PLANNED','RECURRING','ASSET','SOCIAL') NULL",
             lifecycle_status: "ENUM('ACTIVE','PAUSED','COMPLETED') NOT NULL DEFAULT 'ACTIVE'",
-            configured_priority: 'TINYINT UNSIGNED NULL', target_date: 'DATE NULL',
+            configured_priority: 'TINYINT UNSIGNED NULL', display_order: 'INT UNSIGNED NULL', target_date: 'DATE NULL',
             refill_enabled: 'BOOLEAN NOT NULL DEFAULT FALSE', healthy_threshold: 'DECIMAL(4,3) NOT NULL DEFAULT 0.800',
             critical_threshold: 'DECIMAL(4,3) NOT NULL DEFAULT 0.500', target_reached_at: 'DATETIME NULL',
             cycle_type: "ENUM('MONTHLY','YEARLY','CUSTOM') NULL", cycle_interval: 'SMALLINT UNSIGNED NULL', next_due_date: 'DATE NULL',
@@ -68,6 +68,7 @@ const ensureFinancialGoalSchema = pool => {
         const existing = new Set(columns.map(row => row.COLUMN_NAME));
         const missing = Object.entries(definitions).filter(([name]) => !existing.has(name));
         if (missing.length) await db.query(`ALTER TABLE financial_goals ${missing.map(([name, definition]) => `ADD COLUMN ${name} ${definition}`).join(', ')}`);
+
         const { LEGACY_CATEGORY_MAPPINGS } = require('../domain/financialGoals');
         for (const [category, titles] of Object.entries(LEGACY_CATEGORY_MAPPINGS)) {
             if (!titles.length) continue;
@@ -78,7 +79,21 @@ const ensureFinancialGoalSchema = pool => {
                 milestone_behavior=CASE WHEN ?='ASSET' THEN 'CONTINUE' ELSE milestone_behavior END
                 WHERE category IS NULL AND title IN (${placeholders})`, [category, category, category, category, ...titles]);
         }
+
+        // Isi hanya goal lama yang belum punya posisi, sehingga urutan manual yang sudah ada tetap aman.
+        const [maximumRows] = await db.query('SELECT COALESCE(MAX(display_order),0) maximum_order FROM financial_goals');
+        let nextOrder = Number(maximumRows[0]?.maximum_order || 0);
+        const [unorderedGoals] = await db.query(`SELECT id FROM financial_goals WHERE display_order IS NULL
+            ORDER BY configured_priority IS NULL,configured_priority,id`);
+        for (const goal of unorderedGoals) {
+            nextOrder += 1;
+            await db.query('UPDATE financial_goals SET display_order=?,updated_at=updated_at WHERE id=? AND display_order IS NULL', [nextOrder, goal.id]);
+        }
+
+        const [indexes] = await db.query("SELECT 1 FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='financial_goals' AND index_name='idx_financial_goals_display_order'");
+        if (!indexes.length) await db.query('ALTER TABLE financial_goals ADD INDEX idx_financial_goals_display_order (display_order)');
         await db.query('UPDATE financial_goals SET target_reached_at=COALESCE(target_reached_at,created_at) WHERE target_amount>0 AND collected_amount>=target_amount');
+        return { hasUpdatedAt:true };
     })().catch(error => { financialGoalPromise = undefined; throw error; });
     return financialGoalPromise;
 };

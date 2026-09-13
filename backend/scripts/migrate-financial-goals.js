@@ -5,7 +5,8 @@ const { LEGACY_CATEGORY_MAPPINGS: categoryMappings } = require('../domain/financ
 const columns = {
     category: "ENUM('PROTECTION','PLANNED','RECURRING','ASSET','SOCIAL') NULL AFTER description",
     lifecycle_status: "ENUM('ACTIVE','PAUSED','COMPLETED') NOT NULL DEFAULT 'ACTIVE' AFTER category",
-    configured_priority: 'TINYINT UNSIGNED NULL AFTER lifecycle_status', target_date: 'DATE NULL AFTER configured_priority',
+    configured_priority: 'TINYINT UNSIGNED NULL AFTER lifecycle_status', display_order: 'INT UNSIGNED NULL AFTER configured_priority',
+    target_date: 'DATE NULL AFTER display_order',
     refill_enabled: 'BOOLEAN NOT NULL DEFAULT FALSE AFTER target_date', healthy_threshold: 'DECIMAL(4,3) NOT NULL DEFAULT 0.800 AFTER refill_enabled',
     critical_threshold: 'DECIMAL(4,3) NOT NULL DEFAULT 0.500 AFTER healthy_threshold', target_reached_at: 'DATETIME NULL AFTER critical_threshold',
     cycle_type: "ENUM('MONTHLY','YEARLY','CUSTOM') NULL AFTER target_reached_at", cycle_interval: 'SMALLINT UNSIGNED NULL AFTER cycle_type',
@@ -20,11 +21,19 @@ async function main() {
         const [existing] = await connection.query("SELECT column_name FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='financial_goals'");
         const names = new Set(existing.map(row => row.COLUMN_NAME));
         for (const [name, definition] of Object.entries(columns)) if (!names.has(name)) await connection.query(`ALTER TABLE financial_goals ADD COLUMN ${name} ${definition}`);
-        for (const [name, column] of [['idx_financial_goals_category','category'],['idx_financial_goals_status','lifecycle_status']]) {
+        for (const [name, column] of [['idx_financial_goals_category','category'],['idx_financial_goals_status','lifecycle_status'],['idx_financial_goals_display_order','display_order']]) {
             const [indexes] = await connection.query("SELECT 1 FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name='financial_goals' AND index_name=?", [name]);
             if (!indexes.length) await connection.query(`ALTER TABLE financial_goals ADD INDEX ${name} (${column})`);
         }
         await connection.beginTransaction();
+        const [maximumRows] = await connection.query('SELECT COALESCE(MAX(display_order),0) maximum_order FROM financial_goals');
+        let nextOrder = Number(maximumRows[0]?.maximum_order || 0);
+        const [unorderedGoals] = await connection.query(`SELECT id FROM financial_goals WHERE display_order IS NULL
+            ORDER BY configured_priority IS NULL,configured_priority,id`);
+        for (const goal of unorderedGoals) {
+            nextOrder += 1;
+            await connection.query('UPDATE financial_goals SET display_order=?,updated_at=updated_at WHERE id=?', [nextOrder, goal.id]);
+        }
         const mapped = {};
         for (const [category, titles] of Object.entries(categoryMappings)) {
             if (!titles.length) { mapped[category] = 0; continue; }

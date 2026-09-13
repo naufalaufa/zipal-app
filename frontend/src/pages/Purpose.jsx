@@ -9,6 +9,15 @@ import { goalDefaults as defaults, goalToForm, goalFormPayload } from '../featur
 
 const { TextArea } = Input;
 const categoryOptions = Object.entries(CATEGORIES).map(([value, item]) => ({ value, label: <span>{item.icon} {item.label}</span> }));
+const reorderGoals = (items, sourceId, targetId) => {
+  const sourceIndex = items.findIndex(item => item.id === sourceId);
+  const targetIndex = items.findIndex(item => item.id === targetId);
+  if (sourceIndex < 0 || targetIndex < 0 || sourceIndex === targetIndex) return items;
+  const next = [...items];
+  const [moved] = next.splice(sourceIndex, 1);
+  next.splice(targetIndex, 0, moved);
+  return next;
+};
 
 export default function Purpose() {
   const detailRequest = useRef(0);
@@ -19,6 +28,8 @@ export default function Purpose() {
   const [detailId, setDetailId] = useState(null); const [detail, setDetail] = useState(null); const [detailLoading, setDetailLoading] = useState(false);
   const [saving, setSaving] = useState(false); const [form] = Form.useForm(); const category = Form.useWatch('category', form);
   const [planOpen, setPlanOpen] = useState(false); const [capacity, setCapacity] = useState(null); const [plan, setPlan] = useState(null); const [planLoading, setPlanLoading] = useState(false);
+  const [reordering, setReordering] = useState(false); const [draggingId, setDraggingId] = useState(null); const [dropTargetId, setDropTargetId] = useState(null);
+  const dragState = useRef({ sourceId:null, targetId:null });
   const user = JSON.parse(sessionStorage.getItem('user') || '{}'); const isAdmin = user.role === 'admin';
 
   const load = useCallback(async () => {
@@ -32,6 +43,57 @@ export default function Purpose() {
   const counts = useMemo(() => goals.reduce((map, goal) => ({ ...map, [goal.category]: (map[goal.category] || 0) + 1 }), {}), [goals]);
   const filtered = filter === 'ALL' ? goals : goals.filter(goal => goal.category === filter);
   const filters = [{ value:'ALL', label:'Semua', count:goals.length }, ...Object.entries(CATEGORIES).map(([value, item]) => ({ value, label:item.short, icon:item.icon, count:counts[value] || 0 }))];
+
+  const persistOrder = async (nextGoals, previousGoals) => {
+    if (nextGoals === previousGoals) return;
+    setGoals(nextGoals); setReordering(true);
+    try {
+      await api.put('/goals/reorder', { ordered_ids:nextGoals.map(goal => goal.id) });
+      message.success('Urutan tujuan berhasil disimpan.');
+    } catch (error) {
+      setGoals(previousGoals);
+      if (error.response?.status === 409) await load();
+      message.error(error.response?.data?.message || 'Gagal menyimpan urutan tujuan. Urutan sebelumnya dikembalikan.');
+    } finally { setReordering(false); }
+  };
+  const moveGoal = (sourceId, targetId) => {
+    if (!isAdmin || reordering || sourceId === targetId) return;
+    const previousGoals = goals; const nextGoals = reorderGoals(previousGoals, sourceId, targetId);
+    void persistOrder(nextGoals, previousGoals);
+  };
+  const resetDrag = () => {
+    dragState.current = { sourceId:null, targetId:null };
+    setDraggingId(null); setDropTargetId(null);
+  };
+  const beginDrag = (event, goalId) => {
+    if (!isAdmin || reordering) return;
+    event.preventDefault(); event.stopPropagation();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    dragState.current = { sourceId:goalId, targetId:goalId };
+    setDraggingId(goalId); setDropTargetId(goalId);
+  };
+  const updateDrag = event => {
+    if (!dragState.current.sourceId) return;
+    event.preventDefault();
+    const target = document.elementFromPoint(event.clientX, event.clientY)?.closest('[data-goal-id]');
+    const targetId = Number(target?.dataset.goalId);
+    if (Number.isSafeInteger(targetId) && targetId !== dragState.current.targetId) {
+      dragState.current.targetId = targetId;
+      setDropTargetId(targetId);
+    }
+  };
+  const finishDrag = event => {
+    event.preventDefault(); event.stopPropagation();
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    const { sourceId, targetId } = dragState.current;
+    resetDrag();
+    if (sourceId && targetId) moveGoal(sourceId, targetId);
+  };
+  const moveByOne = (goalId, offset) => {
+    const index = filtered.findIndex(goal => goal.id === goalId);
+    const target = filtered[index + offset];
+    if (target) moveGoal(goalId, target.id);
+  };
 
   const openAdd = () => { if (!isAdmin) return; setEditing(null); form.resetFields(); form.setFieldsValue(goalToForm()); setFormOpen(true); };
   const openEdit = goal => { if (!isAdmin) return; setEditing(goal); form.resetFields(); form.setFieldsValue(goalToForm(goal)); setFormOpen(true); };
@@ -71,7 +133,8 @@ export default function Purpose() {
         <Button type="primary" size="large" icon={<PlusOutlined />} disabled={!isAdmin} onClick={openAdd}>Tambah Tujuan</Button></div>
       <FinancialGoalSummary summary={summary} loading={loading} /><RecoveryModeCard summary={summary} onPlan={() => setPlanOpen(true)} />
       <nav className="goal-filters" aria-label="Filter kategori Financial Goals">{filters.map(item => <Button key={item.value} className={`goal-filter goal-filter-${item.value.toLowerCase()}`} type={filter === item.value ? 'primary' : 'default'} onClick={() => setFilter(item.value)}>{item.icon}<span>{item.label}</span><strong>{item.count}</strong></Button>)}</nav>
-      <section id="goal-list">{loading ? <div style={{ textAlign:'center', padding:60 }}><Spin size="large" /></div> : filtered.length ? <Row gutter={[16,16]}>{filtered.map(goal => <Col xs={24} md={12} lg={8} key={goal.id}><FinancialGoalCard goal={goal} onDetail={openDetail} onEdit={isAdmin ? openEdit : null} onDelete={isAdmin ? removeGoal : null} /></Col>)}</Row> : <EmptyGoalCategory label={filter === 'ALL' ? 'Financial Goal' : CATEGORIES[filter]?.label} onAdd={isAdmin ? openAdd : null} />}</section>
+      {isAdmin&&<Alert className="goal-order-hint" type="info" showIcon message="Urutan tujuan bisa dipindahkan" description="Tahan ikon titik-titik pada kartu lalu geser ke posisi yang diinginkan. Di ponsel atau dengan keyboard, gunakan tombol panah atas dan bawah. Urutan tersimpan otomatis tanpa mengubah prioritas P1–P5." />}
+      <section id="goal-list" aria-busy={reordering}>{loading ? <div style={{ textAlign:'center', padding:60 }}><Spin size="large" /></div> : filtered.length ? <Row gutter={[16,16]}>{filtered.map((goal,index) => <Col xs={24} md={12} lg={8} key={goal.id} data-goal-id={goal.id} className={`goal-sort-item${draggingId===goal.id?' goal-sort-item--dragging':''}${dropTargetId===goal.id&&draggingId!==goal.id?' goal-sort-item--target':''}`}><FinancialGoalCard goal={goal} onDetail={openDetail} onEdit={isAdmin ? openEdit : null} onDelete={isAdmin ? removeGoal : null} dragHandleProps={isAdmin?{disabled:reordering,'aria-label':`Geser ${goal.title}`,onPointerDown:event=>beginDrag(event,goal.id),onPointerMove:updateDrag,onPointerUp:finishDrag,onPointerCancel:resetDrag}:null} onMoveUp={isAdmin?()=>moveByOne(goal.id,-1):null} onMoveDown={isAdmin?()=>moveByOne(goal.id,1):null} moveUpDisabled={reordering||index===0} moveDownDisabled={reordering||index===filtered.length-1} /></Col>)}</Row> : <EmptyGoalCategory label={filter === 'ALL' ? 'Financial Goal' : CATEGORIES[filter]?.label} onAdd={isAdmin ? openAdd : null} />}</section>
     </main>
     <FinancialGoalDetail open={detailId != null} goal={detail} loading={detailLoading} onClose={closeDetail} />
     <Modal title="Rencana Refill" open={planOpen} onCancel={() => setPlanOpen(false)} footer={null} width={600}>
