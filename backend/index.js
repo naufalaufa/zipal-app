@@ -26,6 +26,7 @@ app.use(
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/public/uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.get('/', (req, res) => {
+    res.set('X-Zipal-Agreement-Revision', 'contribution-v2');
     res.send('Zipal Backend is Running 🚀');
 });
 
