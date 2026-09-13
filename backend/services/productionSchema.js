@@ -3,6 +3,7 @@ const template = require('../data/agreementTemplate.json');
 
 let agreementPromise;
 let transactionPromise;
+let goalDisplayOrderPromise;
 const ensureAgreementSchema = pool => {
     if (agreementPromise) return agreementPromise;
     agreementPromise = (async () => {
@@ -49,4 +50,29 @@ const ensureTransactionGoalSchema = pool => {
     return transactionPromise;
 };
 
-module.exports = { ensureAgreementSchema, ensureTransactionGoalSchema };
+const ensureGoalDisplayOrderSchema = pool => {
+    if (goalDisplayOrderPromise) return goalDisplayOrderPromise;
+    goalDisplayOrderPromise = (async () => {
+        const db = pool.promise();
+        const [columns] = await db.query("SELECT column_name FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'financial_goals' AND column_name IN ('configured_priority','display_order','updated_at')");
+        const columnNames = new Set(columns.map(column => column.COLUMN_NAME));
+        if (!columnNames.has('display_order')) await db.query(`ALTER TABLE financial_goals ADD COLUMN display_order INT UNSIGNED NULL${columnNames.has('configured_priority') ? ' AFTER configured_priority' : ''}`);
+
+        // Preserve the order users saw before drag-and-drop existed.
+        const [maximumRows] = await db.query('SELECT COALESCE(MAX(display_order), 0) AS maximum_order FROM financial_goals');
+        let nextOrder = Number(maximumRows[0]?.maximum_order || 0);
+        const legacyOrder = columnNames.has('configured_priority') ? 'configured_priority IS NULL, configured_priority, id' : 'id';
+        const [unorderedGoals] = await db.query(`SELECT id FROM financial_goals WHERE display_order IS NULL ORDER BY ${legacyOrder}`);
+        for (const goal of unorderedGoals) {
+            nextOrder += 1;
+            await db.query(`UPDATE financial_goals SET display_order = ?${columnNames.has('updated_at') ? ', updated_at = updated_at' : ''} WHERE id = ? AND display_order IS NULL`, [nextOrder, goal.id]);
+        }
+
+        const [indexes] = await db.query("SELECT 1 FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'financial_goals' AND index_name = 'idx_financial_goals_display_order'");
+        if (!indexes.length) await db.query('ALTER TABLE financial_goals ADD INDEX idx_financial_goals_display_order (display_order)');
+        return { hasUpdatedAt:columnNames.has('updated_at') };
+    })().catch(error => { goalDisplayOrderPromise = undefined; throw error; });
+    return goalDisplayOrderPromise;
+};
+
+module.exports = { ensureAgreementSchema, ensureTransactionGoalSchema, ensureGoalDisplayOrderSchema };

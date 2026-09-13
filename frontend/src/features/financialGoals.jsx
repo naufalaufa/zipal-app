@@ -1,6 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
-import { Alert, Button, Card, Col, Descriptions, Drawer, Empty, List, Progress, Row, Skeleton, Space, Statistic, Tag, Typography } from 'antd';
-import { AimOutlined, CalendarOutlined, HeartOutlined, ReloadOutlined, SafetyCertificateOutlined, RiseOutlined } from '@ant-design/icons';
+import { Alert, Button, Card, Col, Descriptions, Drawer, Empty, List, Progress, Row, Skeleton, Space, Statistic, Tag, Tooltip, Typography } from 'antd';
+import { AimOutlined, CalendarOutlined, DownOutlined, HeartOutlined, HolderOutlined, ReloadOutlined, SafetyCertificateOutlined, RiseOutlined, UpOutlined } from '@ant-design/icons';
 
 export const CATEGORIES = {
   PROTECTION: { label: 'Proteksi', short: 'Proteksi', icon: <SafetyCertificateOutlined />, color: 'blue' },
@@ -15,7 +15,7 @@ export const clampPercent = value => Math.min(100, Math.max(0, safeNumber(value)
 export const normalizeFinancialGoal = goal => ({ ...goal, id:safeNumber(goal?.id), title:goal?.title || '', category:CATEGORIES[goal?.category] ? goal.category : 'UNKNOWN',
   current_amount:safeNumber(goal?.current_amount ?? goal?.collected_amount), target_amount:safeNumber(goal?.target_amount), progress:safeNumber(goal?.progress),
   remaining_amount:safeNumber(goal?.remaining_amount), surplus_amount:safeNumber(goal?.surplus_amount), refill_deficit:safeNumber(goal?.refill_deficit),
-  effective_priority:safeNumber(goal?.effective_priority) || 4, effective_status:goal?.effective_status || 'ACTIVE', transactions:Array.isArray(goal?.transactions) ? goal.transactions : [] });
+  effective_priority:safeNumber(goal?.effective_priority) || 4, display_order:safeNumber(goal?.display_order), effective_status:goal?.effective_status || 'ACTIVE', transactions:Array.isArray(goal?.transactions) ? goal.transactions : [] });
 export const money = value => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(safeNumber(value));
 export const dateText = value => {
   if (!value) return '—';
@@ -48,12 +48,12 @@ export function RecoveryModeCard({ summary, onPlan }) {
       <strong>Total refill {money(summary.total_refill_deficit)}</strong><Button type="link" onClick={onPlan} style={{ padding: 0 }}>Lihat Rencana Refill</Button></Space>} />;
 }
 
-export function FinancialGoalCard({ goal, onDetail, onEdit, onDelete }) {
+export function FinancialGoalCard({ goal, onDetail, onEdit, onDelete, dragHandleProps, onMoveUp, onMoveDown, moveUpDisabled, moveDownDisabled }) {
   const category = getGoalCategoryMeta(goal.category); const capped = clampPercent(goal.progress);
   return <Card hoverable className={`goal-card goal-card-${String(goal.category).toLowerCase()}`} onClick={() => onDetail(goal.id)}>
     <div className="goal-card-head"><div className="goal-icon">{category?.icon || <AimOutlined />}</div><div className="goal-title-wrap">
       <Typography.Text strong className="goal-title">{goal.title}</Typography.Text><Space size={[0, 4]} wrap><GoalCategoryBadge category={goal.category} /><GoalStatusBadge status={goal.effective_status} /></Space>
-    </div></div>
+    </div>{dragHandleProps&&<Tooltip title="Tahan lalu geser untuk memindahkan tujuan"><Button {...dragHandleProps} className="goal-drag-handle" type="text" icon={<HolderOutlined />} onClick={event=>event.stopPropagation()} /></Tooltip>}</div>
     <div className="goal-money"><strong>{money(goal.current_amount)}</strong><span>dari {money(goal.target_amount)}</span></div>
     <Progress percent={capped} size="small" strokeColor="#1677ff" format={() => `${Number(goal.progress || 0).toFixed(1)}%`} />
     <Typography.Text type={goal.refill_deficit > 0 ? 'warning' : 'secondary'}>
@@ -61,7 +61,10 @@ export function FinancialGoalCard({ goal, onDetail, onEdit, onDelete }) {
     </Typography.Text>
     <div className="goal-actions"><Button className="goal-action-detail" size="small" onClick={event => { event.stopPropagation(); onDetail(goal.id); }}>Detail</Button>
       {onEdit && <Button className="goal-action-edit" size="small" onClick={event => { event.stopPropagation(); onEdit(goal); }}>Edit</Button>}
-      {onDelete && <Button className="goal-action-delete" size="small" danger onClick={event => { event.stopPropagation(); onDelete(goal); }}>Delete</Button>}<Tag className="goal-priority">P{goal.effective_priority}</Tag></div>
+      {onDelete && <Button className="goal-action-delete" size="small" danger onClick={event => { event.stopPropagation(); onDelete(goal); }}>Delete</Button>}
+      {onMoveUp&&<Tooltip title="Pindahkan satu posisi ke atas"><Button className="goal-order-button" size="small" icon={<UpOutlined />} disabled={moveUpDisabled} aria-label={`Pindahkan ${goal.title} ke atas`} onClick={event=>{event.stopPropagation();onMoveUp();}} /></Tooltip>}
+      {onMoveDown&&<Tooltip title="Pindahkan satu posisi ke bawah"><Button className="goal-order-button" size="small" icon={<DownOutlined />} disabled={moveDownDisabled} aria-label={`Pindahkan ${goal.title} ke bawah`} onClick={event=>{event.stopPropagation();onMoveDown();}} /></Tooltip>}
+      <Tag className="goal-priority">P{goal.effective_priority}</Tag></div>
   </Card>;
 }
 

@@ -2,20 +2,22 @@ const express = require('express');
 const db = require('../config/db');
 const authenticateToken = require('../middleware/auth');
 const { CATEGORIES, validCategory, deriveGoal, buildRecommendation } = require('../domain/financialGoals');
+const { ensureGoalDisplayOrderSchema } = require('../services/productionSchema');
 const router = express.Router();
 const query = (sql, params = []) => db.promise().query(sql, params).then(([rows]) => rows);
-const goalSelect = `SELECT id,title,target_amount,collected_amount,description,category,lifecycle_status,configured_priority,target_date,
+const goalSelect = `SELECT id,title,target_amount,collected_amount,description,category,lifecycle_status,configured_priority,display_order,target_date,
  refill_enabled,healthy_threshold,critical_threshold,target_reached_at,cycle_type,cycle_interval,next_due_date,is_recurring,
  milestone_behavior,created_at,updated_at FROM financial_goals`;
-const legacyGoal = goal => ({ ...goal, category:null, lifecycle_status:'ACTIVE', configured_priority:null, target_date:null,
+const legacyGoal = goal => ({ ...goal, category:null, lifecycle_status:'ACTIVE', configured_priority:null, display_order:Number(goal.id), target_date:null,
     refill_enabled:0, healthy_threshold:.8, critical_threshold:.5, target_reached_at:Number(goal.collected_amount) >= Number(goal.target_amount) ? goal.created_at : null,
     cycle_type:null, cycle_interval:null, next_due_date:null, is_recurring:0, milestone_behavior:'STOP', updated_at:goal.created_at,
     schema_legacy:true });
 const loadGoals = async (suffix = '', params = []) => {
+    await ensureGoalDisplayOrderSchema(db);
     try { return await query(`${goalSelect}${suffix}`, params); }
     catch (error) {
         if (error.code !== 'ER_BAD_FIELD_ERROR') throw error;
-        const safeSuffix = suffix.replace(/\bcategory\s*=\s*\?/g, '1=0').replace(/configured_priority IS NULL,configured_priority,/g, '');
+        const safeSuffix = suffix.replace(/\bcategory\s*=\s*\?/g, '1=0').replace(/display_order IS NULL,display_order,/g, '').replace(/configured_priority IS NULL,configured_priority,/g, '');
         const safeParams = suffix.includes('category=?') ? params.slice(1) : params;
         const rows = await query(`SELECT id,title,target_amount,collected_amount,description,created_at FROM financial_goals${safeSuffix}`, safeParams);
         return rows.map(legacyGoal);
@@ -53,7 +55,7 @@ router.get('/goals', async (req, res) => {
     try {
         const params = []; let where = '';
         if (req.query.category && validCategory(req.query.category)) { where = ' WHERE category=?'; params.push(req.query.category); }
-        const rows = await loadGoals(`${where} ORDER BY configured_priority IS NULL,configured_priority,id`, params);
+        const rows = await loadGoals(`${where} ORDER BY display_order IS NULL,display_order,id`, params);
         res.json({ status: 'success', data: rows.map(deriveGoal) });
     } catch (error) { fail(req, res, error, 'Gagal memuat Financial Goals.'); }
 });
@@ -91,8 +93,10 @@ router.get('/goals/:id', async (req, res, next) => {
 });
 
 router.post('/goals', authenticateToken, adminOnly, validateGoal, async (req, res) => {
-    const connection = await db.promise().getConnection();
+    let connection;
     try {
+        await ensureGoalDisplayOrderSchema(db);
+        connection = await db.promise().getConnection();
         await connection.beginTransaction();
         const input = req.body; const initial = number(input.collected_amount || 0); const target = number(input.target_amount);
         const refill = input.category === CATEGORIES.PROTECTION ? input.refill_enabled !== false : bool(input.refill_enabled);
@@ -103,11 +107,46 @@ router.post('/goals', authenticateToken, adminOnly, validateGoal, async (req, re
           input.configured_priority || null,input.target_date || null,refill,number(input.healthy_threshold ?? .8),number(input.critical_threshold ?? .5),
           input.cycle_type || null,input.cycle_interval || null,input.next_due_date || null,input.category === CATEGORIES.RECURRING || bool(input.is_recurring),
           input.category === CATEGORIES.ASSET ? 'CONTINUE' : (input.milestone_behavior || 'STOP'),initial >= target ? new Date() : null]);
+        await connection.query('UPDATE financial_goals SET display_order = ? WHERE id = ?', [result.insertId, result.insertId]);
         if (initial > 0) await connection.query(`INSERT INTO transactions (username,type,amount,date,description,goal_id)
           VALUES (?,'deposit',?,CURRENT_DATE,'Saldo awal goal',?)`, [req.user.username,initial,result.insertId]);
         await connection.commit();
         res.status(201).json({ status: 'success', data: { id: result.insertId }, message: 'Financial goal berhasil dibuat.' });
-    } catch (error) { await connection.rollback(); fail(req, res, error, 'Gagal membuat Financial Goal.'); } finally { connection.release(); }
+    } catch (error) {
+        if (connection) await connection.rollback();
+        fail(req, res, error, 'Gagal membuat Financial Goal.');
+    } finally { connection?.release(); }
+});
+
+router.put('/goals/reorder', authenticateToken, adminOnly, async (req, res) => {
+    const orderedIds = req.body?.ordered_ids;
+    if (!Array.isArray(orderedIds) || !orderedIds.length || orderedIds.length > 1000)
+        return res.status(400).json({ message: 'Urutan Financial Goals tidak valid.' });
+    const normalizedIds = orderedIds.map(number);
+    if (normalizedIds.some(id => !Number.isSafeInteger(id) || id <= 0) || new Set(normalizedIds).size !== normalizedIds.length)
+        return res.status(400).json({ message: 'Urutan mengandung ID yang tidak valid atau berulang.' });
+
+    let connection;
+    try {
+        const { hasUpdatedAt } = await ensureGoalDisplayOrderSchema(db);
+        connection = await db.promise().getConnection();
+        await connection.beginTransaction();
+        const [currentGoals] = await connection.query('SELECT id FROM financial_goals ORDER BY id FOR UPDATE');
+        const currentIds = currentGoals.map(goal => Number(goal.id));
+        const submittedIds = new Set(normalizedIds);
+        if (currentIds.length !== normalizedIds.length || currentIds.some(id => !submittedIds.has(id))) {
+            const conflict = new Error('Daftar tujuan berubah. Muat ulang halaman sebelum mengatur urutan kembali.');
+            conflict.status = 409;
+            throw conflict;
+        }
+        for (const [index, id] of normalizedIds.entries())
+            await connection.query(`UPDATE financial_goals SET display_order = ?${hasUpdatedAt ? ', updated_at = updated_at' : ''} WHERE id = ?`, [index + 1, id]);
+        await connection.commit();
+        res.json({ status:'success', message:'Urutan Financial Goals berhasil disimpan.' });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        fail(req, res, error, 'Gagal menyimpan urutan Financial Goals.');
+    } finally { connection?.release(); }
 });
 
 router.put('/goals/:id', authenticateToken, adminOnly, validateGoal, async (req, res) => {
