@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { Alert, Button, Card, Col, Descriptions, Drawer, Empty, List, Progress, Row, Skeleton, Space, Statistic, Tag, Typography } from 'antd';
+import { Alert, Button, Card, Col, Descriptions, Drawer, Empty, List, Progress, Row, Skeleton, Space, Statistic, Tag, Tooltip, Typography } from 'antd';
 import { AimOutlined, CalendarOutlined, DownOutlined, HeartOutlined, HolderOutlined, ReloadOutlined, SafetyCertificateOutlined, RiseOutlined, UpOutlined } from '@ant-design/icons';
 
 export const CATEGORIES = {
