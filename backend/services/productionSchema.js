@@ -4,19 +4,67 @@ const template = require('../data/agreementTemplate.json');
 let agreementPromise;
 let transactionPromise;
 let financialGoalPromise;
+const LEGACY_PENALTY_AGREEMENT_HASH = '477f47f4de72bdb8d848de13acb99ce33138f7b9fadb64321b7813164b019de9';
 const agreementTemplateSnapshot = () => {
     const content = JSON.stringify(template);
     return { agreementNumber:template.number, content, contentHash:createHash('sha256').update(content).digest('hex') };
 };
 const syncAgreementTemplate = async (pool, agreement, signatures = []) => {
     const snapshot = agreementTemplateSnapshot();
-    if (agreement?.status !== 'DRAFT' || agreement.content_hash === snapshot.contentHash || signatures.length) return null;
+    if (agreement?.status !== 'DRAFT' || agreement.content_hash === snapshot.contentHash) return null;
+    if (signatures.length && agreement.content_hash !== LEGACY_PENALTY_AGREEMENT_HASH) return null;
+    if (signatures.length) {
+        const db = pool.promise();
+        await db.query(`CREATE TABLE IF NOT EXISTS agreement_application_revisions (
+            archive_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            original_application_id BIGINT UNSIGNED NOT NULL,
+            agreement_id BIGINT UNSIGNED NOT NULL,
+            user_id BIGINT UNSIGNED NOT NULL,
+            party ENUM('zihra','naufal') NOT NULL,
+            signature_image MEDIUMTEXT NOT NULL,
+            applied BOOLEAN NOT NULL,
+            content_hash CHAR(64) NOT NULL,
+            signed_at DATETIME(3) NOT NULL,
+            created_at DATETIME(3) NOT NULL,
+            revoked_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+            revoke_reason VARCHAR(255) NOT NULL,
+            UNIQUE KEY uq_archived_agreement_application (original_application_id, content_hash)
+        ) ENGINE=InnoDB`);
+        const connection = await db.getConnection();
+        try {
+            await connection.beginTransaction();
+            const [lockedRows] = await connection.query('SELECT id,status,content_hash FROM agreements WHERE id=1 FOR UPDATE');
+            const current = lockedRows[0];
+            if (current?.status !== 'DRAFT' || current.content_hash !== LEGACY_PENALTY_AGREEMENT_HASH) {
+                await connection.rollback();
+                return null;
+            }
+            const [activeRows] = await connection.query('SELECT COUNT(*) count FROM agreement_applications WHERE agreement_id=1');
+            const activeCount = Number(activeRows[0]?.count || 0);
+            await connection.query(`INSERT IGNORE INTO agreement_application_revisions
+                (original_application_id,agreement_id,user_id,party,signature_image,applied,content_hash,signed_at,created_at,revoke_reason)
+                SELECT id,agreement_id,user_id,party,signature_image,applied,content_hash,signed_at,created_at,?
+                FROM agreement_applications WHERE agreement_id=1`,
+            ['Naskah direvisi: pembagian dana diubah agar mengikuti total kontribusi masing-masing pihak.']);
+            const [archivedRows] = await connection.query('SELECT COUNT(*) count FROM agreement_application_revisions WHERE agreement_id=1 AND content_hash=?', [LEGACY_PENALTY_AGREEMENT_HASH]);
+            if (Number(archivedRows[0]?.count || 0) < activeCount) throw new Error('Arsip tanda tangan lama belum lengkap; revisi Agreement dibatalkan.');
+            await connection.query('DELETE FROM agreement_applications WHERE agreement_id=1');
+            await connection.query(`UPDATE agreements SET agreement_number=?,content_json=?,content_hash=?
+                WHERE id=1 AND status='DRAFT' AND content_hash=?`,
+            [snapshot.agreementNumber, snapshot.content, snapshot.contentHash, LEGACY_PENALTY_AGREEMENT_HASH]);
+            await connection.commit();
+            return { ...snapshot, revokedSignatureCount:activeCount };
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally { connection.release(); }
+    }
     const [result] = await pool.promise().execute(`UPDATE agreements agreement
         SET agreement_number = ?, content_json = ?, content_hash = ?
         WHERE agreement.id = 1 AND agreement.status = 'DRAFT' AND agreement.content_hash <> ?
           AND NOT EXISTS (SELECT 1 FROM agreement_applications application WHERE application.agreement_id = agreement.id)`,
     [snapshot.agreementNumber, snapshot.content, snapshot.contentHash, snapshot.contentHash]);
-    return result.affectedRows ? snapshot : null;
+    return result.affectedRows ? { ...snapshot, revokedSignatureCount:0 } : null;
 };
 const ensureAgreementSchema = pool => {
     if (agreementPromise) return agreementPromise;
@@ -117,4 +165,4 @@ const ensureFinancialGoalSchema = pool => {
     return financialGoalPromise;
 };
 
-module.exports = { ensureAgreementSchema, ensureTransactionGoalSchema, ensureFinancialGoalSchema, syncAgreementTemplate };
+module.exports = { ensureAgreementSchema, ensureTransactionGoalSchema, ensureFinancialGoalSchema, syncAgreementTemplate, LEGACY_PENALTY_AGREEMENT_HASH };

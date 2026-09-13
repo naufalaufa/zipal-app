@@ -55,8 +55,11 @@ function createAgreementStore(pool, generatePdf = generateAgreementPdf) {
         }
         let agreement = rows[0];
         const synchronized = await syncAgreementTemplate(pool, agreement, signatures);
-        if (synchronized) agreement = { ...agreement, agreement_number:synchronized.agreementNumber,
-            content_json:synchronized.content, content_hash:synchronized.contentHash };
+        if (synchronized) {
+            agreement = { ...agreement, agreement_number:synchronized.agreementNumber,
+                content_json:synchronized.content, content_hash:synchronized.contentHash };
+            if (synchronized.revokedSignatureCount) signatures = [];
+        }
         return { ...agreement, content: typeof agreement.content_json === 'string' ? JSON.parse(agreement.content_json) : agreement.content_json, content_json: undefined, signatures, viewer: user };
     }
     async function sign(user, input) {
