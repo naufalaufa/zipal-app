@@ -3,6 +3,8 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const db = require('./config/db');
+const { applyAuthorizedAgreementRevision } = require('./services/productionSchema');
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
@@ -14,6 +16,10 @@ const seedRoutes = require('./routes/seed');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const agreementRevision = applyAuthorizedAgreementRevision(db).catch(error => {
+    console.error('Authorized Agreement revision failed:', error.code || error.message);
+    return { state:'error' };
+});
 
 app.use(express.json());
 app.use(
@@ -25,8 +31,10 @@ app.use(
 );
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/public/uploads', express.static(path.join(__dirname, 'public/uploads')));
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
+    const revision = await agreementRevision;
     res.set('X-Zipal-Agreement-Revision', 'contribution-v2');
+    res.set('X-Zipal-Agreement-State', revision.state);
     res.send('Zipal Backend is Running 🚀');
 });
 

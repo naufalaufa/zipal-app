@@ -66,6 +66,16 @@ const syncAgreementTemplate = async (pool, agreement, signatures = []) => {
     [snapshot.agreementNumber, snapshot.content, snapshot.contentHash, snapshot.contentHash]);
     return result.affectedRows ? { ...snapshot, revokedSignatureCount:0 } : null;
 };
+const applyAuthorizedAgreementRevision = async pool => {
+    const db = pool.promise();
+    const [rows] = await db.query('SELECT id,status,content_hash FROM agreements WHERE id=1');
+    if (!rows[0]) return { state:'missing' };
+    const [signatures] = await db.query('SELECT id,content_hash FROM agreement_applications WHERE agreement_id=1');
+    const snapshot = agreementTemplateSnapshot();
+    if (rows[0].content_hash === snapshot.contentHash) return { state:'current' };
+    const synchronized = await syncAgreementTemplate(pool, rows[0], signatures);
+    return synchronized ? { state:'updated', revokedSignatureCount:synchronized.revokedSignatureCount } : { state:'locked' };
+};
 const ensureAgreementSchema = pool => {
     if (agreementPromise) return agreementPromise;
     agreementPromise = (async () => {
@@ -165,4 +175,5 @@ const ensureFinancialGoalSchema = pool => {
     return financialGoalPromise;
 };
 
-module.exports = { ensureAgreementSchema, ensureTransactionGoalSchema, ensureFinancialGoalSchema, syncAgreementTemplate, LEGACY_PENALTY_AGREEMENT_HASH };
+module.exports = { ensureAgreementSchema, ensureTransactionGoalSchema, ensureFinancialGoalSchema, syncAgreementTemplate,
+    applyAuthorizedAgreementRevision, LEGACY_PENALTY_AGREEMENT_HASH };
