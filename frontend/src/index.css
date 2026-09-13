@@ -86,6 +86,165 @@ body {
   width: 100%;
 }
 
+.app-shell {
+  width: 100%;
+  min-width: 0;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app-main-layout {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.app-content {
+  flex: 0 0 auto;
+  min-width: 0;
+  margin: 24px 16px 0;
+}
+
+.app-content__surface {
+  width: 100%;
+  min-width: 0;
+  min-height: 360px;
+  padding: 24px;
+  overflow-x: clip;
+}
+
+.app-guide-button {
+  min-height: 38px;
+  border-radius: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.app-header__leading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobile-nav-trigger {
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text-main);
+}
+
+.mobile-navigation-drawer .ant-drawer-header {
+  border-bottom-color: var(--line);
+  background: var(--surface);
+}
+
+.mobile-navigation-drawer .ant-drawer-body {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--surface);
+}
+
+.mobile-navigation-drawer .ant-menu {
+  flex: 0 1 auto;
+  border-inline-end: 0 !important;
+  background: transparent;
+}
+
+.mobile-navigation-drawer__brand {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.mobile-navigation-drawer__logout {
+  width: 100%;
+  min-height: 40px;
+  margin-top: auto;
+  font-weight: 600;
+}
+
+.dashboard-page {
+  min-width: 0;
+  padding-bottom: 40px;
+}
+
+.summary-balance-card {
+  min-height: 130px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.balance-title {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.balance-title__identity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
+.balance-title__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 8px 0;
+}
+
+.balance-title__cash-share {
+  display: flex;
+  min-width: 0;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface-soft);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.user-finance-card > .ant-card-head {
+  min-height: 76px;
+  padding: 10px 20px;
+}
+
+.user-finance-card > .ant-card-head .ant-card-head-title {
+  min-width: 0;
+  overflow: visible;
+  white-space: normal;
+}
+
+.transaction-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.transaction-actions > .ant-btn {
+  flex: 1 1 190px;
+  min-width: 0;
+  min-height: 38px;
+  height: auto;
+  white-space: normal;
+}
+
 .footer-brand { color: #8c8c8c; font-size: 12px; }
 .contact-fab { position: fixed; right: max(22px, env(safe-area-inset-right)); bottom: max(22px, env(safe-area-inset-bottom)); z-index: 1000; display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .contact-fab__items { display: flex; flex-direction: column; gap: 12px; pointer-events: none; }
@@ -316,13 +475,84 @@ body {
 /* Laptop & Tablet Breakpoint */
 @media (max-width: 1366px) {
   .ant-btn {
-    padding: 2px 8px !important;
-    font-size: 12px !important;
+    padding: 5px 12px !important;
+    font-size: 13px !important;
   }
   
   /* Singkatkan teks jika di layar kecil agar tidak turun */
   .btn-text-long {
     display: none; /* Sembunyikan teks panjang, ganti ikon saja atau teks singkat */
+  }
+}
+
+@media (max-width: 1599px) {
+  .balance-title__cash-share {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 1200px) {
+  .app-content {
+    margin: 18px 12px 0;
+  }
+
+  .app-content__surface {
+    padding: 20px;
+  }
+
+  .greeting-content {
+    padding: 22px 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-content {
+    margin: 12px 8px 0;
+  }
+
+  .app-content__surface {
+    padding: 16px;
+  }
+
+  .balance-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .balance-title__cash-share {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .transaction-actions {
+    flex-direction: column;
+  }
+
+  .transaction-actions > .ant-btn {
+    width: 100%;
+    flex-basis: auto;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-guide-button {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-content__surface {
+    padding: 12px;
+  }
+
+  .user-finance-card > .ant-card-head {
+    padding: 10px 14px;
+  }
+
+  .balance-title__identity {
+    align-items: flex-start;
   }
 }
 

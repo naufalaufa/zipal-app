@@ -1,64 +1,68 @@
 import { useState, useEffect, useCallback } from 'react'; 
-import { AreaChartOutlined, HistoryOutlined, SafetyCertificateOutlined , DollarCircleOutlined, DashboardOutlined, UserOutlined, FileOutlined, LogoutOutlined , EyeOutlined , EyeInvisibleOutlined , WalletOutlined,  TeamOutlined, IdcardOutlined } from '@ant-design/icons';
-import { Avatar, Button, Layout, Menu, theme, Modal, Typography, Tag, Divider, Descriptions } from 'antd'; 
+import { AreaChartOutlined, HistoryOutlined, SafetyCertificateOutlined , DollarCircleOutlined, DashboardOutlined, UserOutlined, FileOutlined, LogoutOutlined , EyeOutlined , EyeInvisibleOutlined , WalletOutlined,  TeamOutlined, IdcardOutlined, MenuOutlined } from '@ant-design/icons';
+import { Avatar, Button, Layout, Menu, theme, Modal, Typography, Tag, Divider, Descriptions, Drawer, Grid } from 'antd';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import Swal from 'sweetalert2'
 import api from '../api';
 import FooterContacts from './FooterContacts';
 import ThemeIndicator from './ThemeIndicator';
+import GuideTour from './GuideTour';
 import { useAutomaticTheme } from '../themeContext';
 import { clearSession, getSessionUser } from '../authSession';
 const avatarFor = user => !user.avatar ? null : user.avatar.startsWith('http') ? user.avatar : `${import.meta.env.VITE_API_URL}/public/uploads/${user.avatar}`;
 
 const { Header, Content, Footer, Sider } = Layout;
 const { Title, Text } = Typography;
+const { useBreakpoint } = Grid;
 
 const menuItems = [
   { 
     key: '/dashboard', 
     icon: <DashboardOutlined />,
-    label: 'Dashboard' 
+    label: <span data-guide="menu-dashboard">Dashboard</span>
   },
   {
     key: '/dashboard/history', 
     icon: <HistoryOutlined />,
-    label: 'History'
+    label: <span data-guide="menu-history">History</span>
   },
   {
     key: '/dashboard/investment',
     icon: <DollarCircleOutlined />,
-    label: 'Investment'
+    label: <span data-guide="menu-investment">Investment</span>
   },
   {
     key: '/dashboard/purpose',
     icon: <TeamOutlined />, 
-    label: 'Purpose' 
+    label: <span data-guide="menu-purpose">Purpose</span>
   },
   {
     key: '/dashboard/analytics',
     icon: <AreaChartOutlined />,
-    label: 'Analytics'
+    label: <span data-guide="menu-analytics">Analytics</span>
   },
   { 
     key: '/dashboard/profile',
     icon: <UserOutlined />,
-    label: 'Profile'
+    label: <span data-guide="menu-profile">Profile</span>
   },
   {
     key: '/dashboard/agreement',
     icon: <FileOutlined />, 
-    label: 'Agreement' 
+    label: <span data-guide="menu-agreement">Agreement</span>
   },
   {
     key: '/dashboard/logactivities',
     icon: <SafetyCertificateOutlined />, 
-    label: 'LogActivities' 
+    label: <span data-guide="menu-logs">LogActivities</span>
   },
 ];
 
 const DashboardLayout = () => {
   const mode = useAutomaticTheme();
-  const [collapsed, setCollapsed] = useState(false);
+  const screens = useBreakpoint();
+  const isMobile = !screens.lg;
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState(getSessionUser() || { username: 'Guest', role: 'guest' });
   const [avatarUrl, setAvatarUrl] = useState(() => avatarFor(currentUser));
   const [cashAvailable, setCashAvailable] = useState(0);
@@ -160,10 +164,15 @@ const DashboardLayout = () => {
     return true;
   });
 
+  const handleNavigation = ({ key }) => {
+    setMobileNavOpen(false);
+    navigate(key);
+  };
+
 
   return (
-    <Layout style={{ height: '100vh', width: '100vw', overflow: 'hidden', display: 'flex' }}>
-      <Sider theme={mode} className="app-sidebar" breakpoint="lg" collapsedWidth="0" onCollapse={(value) => setCollapsed(value)} style={{ position: 'relative', height: '100vh' }}>
+    <Layout className="app-shell">
+      {!isMobile && <Sider width={220} theme={mode} className="app-sidebar" style={{ position: 'relative', height: '100dvh' }}>
         <div className="app-brand" style={{ fontSize: '14px', height: 32, margin: 16, display: 'grid', placeContent: 'center', placeItems: 'center', borderRadius: '10px' }} >
           <p>Zipal Application 📱</p>
         </div>
@@ -173,19 +182,32 @@ const DashboardLayout = () => {
             mode="inline" 
             selectedKeys={[location.pathname]} 
             items={filteredMenu} 
-            onClick={({ key }) => navigate(key)} 
+            onClick={handleNavigation}
         />
 
-        {!collapsed && (
-          <Button onClick={LogoutAccount} icon={<LogoutOutlined />} style={{ width: '90%', position: 'absolute', bottom: '10px', left: '5%', right: '5%', fontWeight: 'bold' }}>
+        <Button onClick={LogoutAccount} icon={<LogoutOutlined />} style={{ width: '90%', position: 'absolute', bottom: '10px', left: '5%', right: '5%', fontWeight: 'bold' }}>
             Logout
-          </Button>
-        )}
-      </Sider>
+        </Button>
+      </Sider>}
 
-      <Layout style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
+      <Drawer
+        className="mobile-navigation-drawer"
+        placement="left"
+        width={292}
+        title={<span className="mobile-navigation-drawer__brand">Zipal Application 📱</span>}
+        open={isMobile && mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        styles={{ body:{ padding:12 } }}
+      >
+        <Menu theme={mode} mode="inline" selectedKeys={[location.pathname]} items={filteredMenu} onClick={handleNavigation} />
+        <Button className="mobile-navigation-drawer__logout" onClick={LogoutAccount} icon={<LogoutOutlined />}>Logout</Button>
+      </Drawer>
+
+      <Layout className="app-main-layout">
         <Header className="app-header">
-          <div className="app-header__balance" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div className="app-header__leading">
+          {isMobile && <Button className="mobile-nav-trigger" type="text" icon={<MenuOutlined />} onClick={() => setMobileNavOpen(true)} aria-label="Buka menu halaman" />}
+          <div data-guide="cash-available" className="app-header__balance" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
              <div style={{  padding: '5px 8px', borderRadius: '6px' }}>
                 <WalletOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
              </div>
@@ -201,10 +223,12 @@ const DashboardLayout = () => {
                 </div>
              </div>
           </div>
+          </div>
           <div className="app-header__actions">
+          <GuideTour role={currentUser.role} isMobile={isMobile} navigationOpen={mobileNavOpen} onNavigationVisibilityChange={setMobileNavOpen} />
           <ThemeIndicator />
           <div className="app-header__profile" onClick={showProfileModal} style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} >
-            <small style={{ textAlign: 'end', marginBottom: 0, fontWeight: '300', display: collapsed ? 'none' : 'block' }}>
+            <small style={{ textAlign: 'end', marginBottom: 0, fontWeight: '300', display: 'block' }}>
                 Hallo {currentUser.username}👋
             </small>
             <Avatar size="large" src={avatarUrl} icon={!avatarUrl && <UserOutlined />} style={{ backgroundColor: avatarUrl ? 'transparent' : '#1890ff', border: '1px solid white' }} />
@@ -212,8 +236,8 @@ const DashboardLayout = () => {
           </div>
         </Header>
 
-        <Content style={{ margin: '24px 16px 0', flex: '0 0 auto' }}>
-          <div style={{ padding: 24, minHeight: 360, background: colorBgContainer, borderRadius: borderRadiusLG }}>
+        <Content className="app-content">
+          <div className="app-content__surface" style={{ background: colorBgContainer, borderRadius: borderRadiusLG }}>
             <Outlet context={{ refreshHeader: refreshAllData }} />
           </div>
         </Content>

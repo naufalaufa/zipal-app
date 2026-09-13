@@ -78,6 +78,18 @@ html, body { background: var(--canvas); color: var(--text-main); }
 @media (prefers-reduced-motion: no-preference) {
   body, .app-header, .app-sidebar, .theme-indicator, .login-card { transition: background-color .3s ease, color .3s ease, border-color .3s ease; }
 }
+@media (max-width: 1200px) {
+  .app-header.ant-layout-header { padding: 0 16px; gap: 10px; }
+  .app-header__actions { gap: 10px; }
+  .theme-indicator { padding: 8px 10px; }
+  .theme-indicator__schedule { display: none; }
+  .app-header__profile small {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
 @media (max-width: 768px) {
   .login-layout { grid-template-columns: 1fr; padding: 0; }
   .login-layout .sidetext-layout-container { display: none; }
@@ -89,11 +101,12 @@ html, body { background: var(--canvas); color: var(--text-main); }
     padding: 16px 20px; gap: 14px 16px;
   }
   .app-header__actions { display: contents; }
-  .app-header__balance { grid-column: 1; grid-row: 1; min-width: 0; }
+  .app-header__leading { grid-column: 1; grid-row: 1; min-width: 0; }
+  .app-header__balance { min-width: 0; }
   .app-header__profile { grid-column: 2; grid-row: 1; justify-self: end; }
   .app-header__profile small { display: none !important; }
   .app-header .theme-indicator {
-    grid-column: 1 / -1; grid-row: 2; width: 100%;
+    grid-column: 1 / -1; grid-row: 3; width: 100%;
     padding: 10px 12px; gap: 12px;
   }
   .app-header .theme-indicator__title { flex-wrap: wrap; gap: 8px; }

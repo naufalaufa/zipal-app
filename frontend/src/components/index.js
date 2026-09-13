@@ -20,3 +20,4 @@ export { default as ForgotPassword } from "./ForgotPassword";
 export { default as CancelOrEditDepositModal } from "./CancelOrEditDepositModal";
 export { default as InputCancelOrEditDeposit } from "./InputCancelOrEditDeposit";
 export { default as Loading } from "./Loading";
+export { default as GuideTour } from "./GuideTour";
