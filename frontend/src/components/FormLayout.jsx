@@ -100,37 +100,44 @@ const FormLayout = () => {
             <Checkbox onChange={onChange}>Ingat saya</Checkbox>
           </Form.Item>
 
-          <Form.Item>
-            <ReCAPTCHA
+        <Form.Item>
+           {captchaRequired && <ReCAPTCHA
               sitekey={import.meta.env.VITE_SITE_KEY_RECAPTCHA_PRODUCTION}
               className="captcha-container"
               onChange={handleCaptchaChange}
-            />
-            <Button
-              type="primary"
-              htmlType="submit"
-              className="login-submit-btn"
-              loading={loading}
+            />}
+
+          <Button
+            type="primary"
+            htmlType="submit"
+            block
+            style={{ marginTop: "15px" }}
+            loading={loading}
+          >
+            Submit
+          </Button>
+        </Form.Item>
+        
+        <Form.Item>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <Button 
+              type="link" 
+              onClick={() => setIsModalOpen(true)}
+              style={{ 
+                color: "var(--accent-text)",
+                textDecoration: "underline"
+              }}
             >
-              Masuk ke Akun
+              Forgot Password?
             </Button>
-          </Form.Item>
-
-          <Form.Item style={{ marginBottom: 0 }}>
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <Button
-                type="link"
-                onClick={() => setIsModalOpen(true)}
-                className="forgot-password-btn"
-              >
-                Lupa Password?
-              </Button>
-            </div>
-          </Form.Item>
-        </Form>
+          </div>
+        </Form.Item>
+      </Form>
+      <ForgotPassword
+        open={isModalOpen} 
+        onCancel={() => setIsModalOpen(false)} 
+      />
       </div>
-
-      <ForgotPassword open={isModalOpen} onCancel={() => setIsModalOpen(false)} />
     </div>
   );
 };
