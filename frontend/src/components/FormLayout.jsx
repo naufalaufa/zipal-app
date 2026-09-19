@@ -5,9 +5,14 @@ import { useNavigate } from "react-router-dom";
 import { startSession } from "../authSession";
 import api from "../api";
 import ForgotPassword from "./ForgotPassword";
-import ThemeIndicator from './ThemeIndicator';
+import ThemeIndicator from "./ThemeIndicator";
 
 const FormLayout = () => {
+  const captchaRequired = !(
+    import.meta.env.DEV &&
+    ["localhost", "127.0.0.1"].includes(window.location.hostname)
+  );
+
   const [loading, setLoading] = useState(false);
   const [captchaVal, setCaptchaVal] = useState(null);
   const [isRemember, setIsRemember] = useState(false);
@@ -20,16 +25,15 @@ const FormLayout = () => {
   };
 
   const onFinish = async (values) => {
-    if (!captchaVal) {
+    if (captchaRequired && !captchaVal) {
       message.error("Silakan verifikasi Captcha terlebih dahulu!");
       return;
     }
 
-    if (isRemember === false) {
+    if (!isRemember) {
       message.error("Tolong lakukan aksi check sebelum login");
       return;
     }
-    
 
     setLoading(true);
 
@@ -41,16 +45,23 @@ const FormLayout = () => {
 
       const { accessToken, data } = response.data;
 
-      startSession({ accessToken, user: data });
+      startSession({
+        accessToken,
+        user: data,
+      });
 
-      message.success("Login Berhasil! Selamat datang " + data.username);
+      message.success(
+        "Login Berhasil! Selamat datang " + data.username
+      );
 
       setTimeout(() => {
         navigate("/dashboard");
       }, 1000);
     } catch (error) {
       if (error.response) {
-        message.error(error.response.data.message);
+        message.error(
+          error.response.data?.message || "Login gagal!"
+        );
       } else {
         message.error("Gagal koneksi ke server Backend!");
       }
@@ -66,12 +77,21 @@ const FormLayout = () => {
   return (
     <div className="form-outer-wrapper">
       <div className="login-card">
-        <div className="login-theme"><ThemeIndicator /></div>
+        <div className="login-theme">
+          <ThemeIndicator />
+        </div>
+
         <div className="login-card-header">
           <div className="login-badge">Zipal 🧑‍🦱👧</div>
           <div className="login-icon-wrap">🔐</div>
-          <h2 className="login-heading">Selamat Datang Kembali</h2>
-          <p className="login-subheading">Masukkan kredensial Anda untuk masuk</p>
+
+          <h2 className="login-heading">
+            Selamat Datang Kembali
+          </h2>
+
+          <p className="login-subheading">
+            Masukkan kredensial Anda untuk masuk
+          </p>
         </div>
 
         <Form
@@ -83,7 +103,12 @@ const FormLayout = () => {
           <Form.Item
             label="Username"
             name="username"
-            rules={[{ required: true, message: "Please input your username!" }]}
+            rules={[
+              {
+                required: true,
+                message: "Please input your username!",
+              },
+            ]}
           >
             <Input placeholder="Masukkan username Anda" />
           </Form.Item>
@@ -91,52 +116,73 @@ const FormLayout = () => {
           <Form.Item
             label="Password"
             name="password"
-            rules={[{ required: true, message: "Please input your password!" }]}
+            rules={[
+              {
+                required: true,
+                message: "Please input your password!",
+              },
+            ]}
           >
             <Input.Password placeholder="Masukkan password Anda" />
           </Form.Item>
 
-          <Form.Item name="remember" valuePropName="checked">
-            <Checkbox onChange={onChange}>Ingat saya</Checkbox>
+          <Form.Item
+            name="remember"
+            valuePropName="checked"
+          >
+            <Checkbox onChange={onChange}>
+              Ingat saya
+            </Checkbox>
           </Form.Item>
 
-        <Form.Item>
-           {captchaRequired && <ReCAPTCHA
-              sitekey={import.meta.env.VITE_SITE_KEY_RECAPTCHA_PRODUCTION}
-              className="captcha-container"
-              onChange={handleCaptchaChange}
-            />}
+          <Form.Item>
+            {captchaRequired && (
+              <ReCAPTCHA
+                sitekey={
+                  import.meta.env
+                    .VITE_SITE_KEY_RECAPTCHA_PRODUCTION
+                }
+                className="captcha-container"
+                onChange={handleCaptchaChange}
+              />
+            )}
 
-          <Button
-            type="primary"
-            htmlType="submit"
-            block
-            style={{ marginTop: "15px" }}
-            loading={loading}
-          >
-            Submit
-          </Button>
-        </Form.Item>
-        
-        <Form.Item>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <Button 
-              type="link" 
-              onClick={() => setIsModalOpen(true)}
-              style={{ 
-                color: "var(--accent-text)",
-                textDecoration: "underline"
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              style={{ marginTop: "15px" }}
+              loading={loading}
+            >
+              Submit
+            </Button>
+          </Form.Item>
+
+          <Form.Item>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
               }}
             >
-              Forgot Password?
-            </Button>
-          </div>
-        </Form.Item>
-      </Form>
-      <ForgotPassword
-        open={isModalOpen} 
-        onCancel={() => setIsModalOpen(false)} 
-      />
+              <Button
+                type="link"
+                onClick={() => setIsModalOpen(true)}
+                style={{
+                  color: "var(--accent-text)",
+                  textDecoration: "underline",
+                }}
+              >
+                Forgot Password?
+              </Button>
+            </div>
+          </Form.Item>
+        </Form>
+
+        <ForgotPassword
+          open={isModalOpen}
+          onCancel={() => setIsModalOpen(false)}
+        />
       </div>
     </div>
   );
