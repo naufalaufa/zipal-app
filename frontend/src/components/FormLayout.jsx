@@ -8,6 +8,7 @@ import ForgotPassword from "./ForgotPassword";
 import ThemeIndicator from './ThemeIndicator';
 
 const FormLayout = () => {
+  const captchaRequired = !(import.meta.env.DEV && ['localhost', '127.0.0.1'].includes(window.location.hostname));
   const [loading, setLoading] = useState(false);
   const [captchaVal, setCaptchaVal] = useState(null);
   const [isRemember, setIsRemember] = useState(false);
@@ -20,7 +21,7 @@ const FormLayout = () => {
   };
 
   const onFinish = async (values) => {
-    if (!captchaVal) {
+    if (captchaRequired && !captchaVal) {
       message.error("Silakan verifikasi Captcha terlebih dahulu!");
       return; 
     }
@@ -99,11 +100,11 @@ const FormLayout = () => {
         </Form.Item>
 
         <Form.Item>
-          <ReCAPTCHA
-            sitekey={import.meta.env.VITE_SITE_KEY_RECAPTCHA_PRODUCTION}
-            className="captcha-container"
-            onChange={handleCaptchaChange}
-          />
+          {captchaRequired && <ReCAPTCHA
+              sitekey={import.meta.env.VITE_SITE_KEY_RECAPTCHA_PRODUCTION}
+              className="captcha-container"
+              onChange={handleCaptchaChange}
+            />}
 
           <Button
             type="primary"
