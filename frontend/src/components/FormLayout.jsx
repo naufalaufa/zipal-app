@@ -8,6 +8,7 @@ import ForgotPassword from "./ForgotPassword";
 import ThemeIndicator from './ThemeIndicator';
 
 const FormLayout = () => {
+  const captchaRequired = !(import.meta.env.DEV && ['localhost', '127.0.0.1'].includes(window.location.hostname));
   const [loading, setLoading] = useState(false);
   const [captchaVal, setCaptchaVal] = useState(null);
   const [isRemember, setIsRemember] = useState(false);
@@ -20,7 +21,7 @@ const FormLayout = () => {
   };
 
   const onFinish = async (values) => {
-    if (!captchaVal) {
+    if (captchaRequired && !captchaVal) {
       message.error("Silakan verifikasi Captcha terlebih dahulu!");
       return;
     }
@@ -100,37 +101,44 @@ const FormLayout = () => {
             <Checkbox onChange={onChange}>Ingat saya</Checkbox>
           </Form.Item>
 
-          <Form.Item>
-            <ReCAPTCHA
-              sitekey={import.meta.env.VITE_SITE_KEY_RECAPTCHA_PRODUCTION}
-              className="captcha-container"
-              onChange={handleCaptchaChange}
-            />
-            <Button
-              type="primary"
-              htmlType="submit"
-              className="login-submit-btn"
-              loading={loading}
+        <Form.Item>
+          <captchaRequired && ReCAPTCHA
+            sitekey={import.meta.env.VITE_SITE_KEY_RECAPTCHA_PRODUCTION}
+            className="captcha-container"
+            onChange={handleCaptchaChange}
+          />
+
+          <Button
+            type="primary"
+            htmlType="submit"
+            block
+            style={{ marginTop: "15px" }}
+            loading={loading}
+          >
+            Submit
+          </Button>
+        </Form.Item>
+        
+        <Form.Item>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <Button 
+              type="link" 
+              onClick={() => setIsModalOpen(true)}
+              style={{ 
+                color: "var(--accent-text)",
+                textDecoration: "underline"
+              }}
             >
-              Masuk ke Akun
+              Forgot Password?
             </Button>
-          </Form.Item>
-
-          <Form.Item style={{ marginBottom: 0 }}>
-            <div style={{ display: "flex", justifyContent: "center" }}>
-              <Button
-                type="link"
-                onClick={() => setIsModalOpen(true)}
-                className="forgot-password-btn"
-              >
-                Lupa Password?
-              </Button>
-            </div>
-          </Form.Item>
-        </Form>
-      </div>
-
-      <ForgotPassword open={isModalOpen} onCancel={() => setIsModalOpen(false)} />
+          </div>
+        </Form.Item>
+      </Form>
+      <ForgotPassword
+        open={isModalOpen} 
+        onCancel={() => setIsModalOpen(false)} 
+      />
+      
     </div>
   );
 };
