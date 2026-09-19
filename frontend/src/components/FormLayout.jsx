@@ -12,7 +12,6 @@ const FormLayout = () => {
     import.meta.env.DEV &&
     ["localhost", "127.0.0.1"].includes(window.location.hostname)
   );
-
   const [loading, setLoading] = useState(false);
   const [captchaVal, setCaptchaVal] = useState(null);
   const [isRemember, setIsRemember] = useState(false);
@@ -135,8 +134,8 @@ const FormLayout = () => {
             </Checkbox>
           </Form.Item>
 
-          <Form.Item>
-            {captchaRequired && (
+        <Form.Item>
+          {captchaRequired && (
               <ReCAPTCHA
                 sitekey={
                   import.meta.env
