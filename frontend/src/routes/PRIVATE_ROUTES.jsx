@@ -1,5 +1,5 @@
 import { createBrowserRouter , Navigate} from "react-router-dom";
-import {  Agreement, Daily, Dashboard, FinancialAnalytics, History, Investment, LogActivities, Profile, Purpose } from "../pages";
+import {  Agreement, Dashboard, FinancialAnalytics, History, Investment, LogActivities, Profile, Purpose } from "../pages";
 import { UserLayout } from "../components";
 import RouteError from '../components/RouteError';
 const PRIVATE_ROUTES = createBrowserRouter([
@@ -20,10 +20,6 @@ const PRIVATE_ROUTES = createBrowserRouter([
             {
                 path: 'history',
                 element: <History />
-            },
-            {
-                path: 'daily',
-                element: <Daily />
             },
             {
                 path: 'investment',

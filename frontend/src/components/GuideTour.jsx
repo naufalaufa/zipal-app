@@ -26,14 +26,9 @@ const GuideTour = ({ role, isMobile, navigationOpen, onNavigationVisibilityChang
         target: () => visibleTarget('[data-guide="tour-trigger"]'),
       },
       {
-        title: 'Cash Available dari Dashboard',
-        description: 'Saldo ini berasal dari transaksi utama di Dashboard. Ikon mata hanya mengatur nominal Cash Available, sedangkan badge Dashboard membuka halaman sumbernya.',
+        title: 'Saldo yang siap digunakan',
+        description: 'Bagian ini menunjukkan uang bersama yang masih tersedia. Tekan ikon mata jika ingin menampilkan atau menyembunyikan nominalnya.',
         target: () => visibleTarget('[data-guide="cash-available"]'),
-      },
-      {
-        title: 'Saldo tersedia dari Daily',
-        description: 'Saldo ini belum dibagikan ke kategori Daily bulan berjalan. Ikon matanya berdiri sendiri, sedangkan badge Daily membuka halaman sumbernya.',
-        target: () => visibleTarget('[data-guide="daily-available"]'),
       },
       {
         title: 'Dashboard — ruang kontrol utama',
@@ -44,11 +39,6 @@ const GuideTour = ({ role, isMobile, navigationOpen, onNavigationVisibilityChang
         title: 'History — buku catatan bersama',
         description: 'Semua uang masuk dan keluar tersusun di sini berdasarkan tanggal, pelaku, tujuan tabungan, nominal, dan keterangannya.',
         target: () => visibleMenuTarget('[data-guide="menu-history"]'),
-      },
-      {
-        title: 'Daily — kebutuhan bulanan',
-        description: 'Kelola saldo khusus kebutuhan harian, budget kategori, pengeluaran, dan pola belanja bulanan di sini.',
-        target: () => visibleMenuTarget('[data-guide="menu-daily"]'),
       },
       {
         title: 'Investment — lemari aset',
@@ -96,7 +86,7 @@ const GuideTour = ({ role, isMobile, navigationOpen, onNavigationVisibilityChang
     }));
   }, [role]);
 
-  const isNavigationStep = step => step >= 3 && step <= 11;
+  const isNavigationStep = step => step >= 2 && step <= 9;
   const closeTour = () => {
     setOpen(false);
     setCurrent(0);

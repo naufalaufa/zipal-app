@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'; 
-import { AppstoreAddOutlined, AreaChartOutlined, CalendarOutlined, HistoryOutlined, SafetyCertificateOutlined , DollarCircleOutlined, DashboardOutlined, UserOutlined, FileOutlined, LogoutOutlined , EyeOutlined , EyeInvisibleOutlined , WalletOutlined,  TeamOutlined, IdcardOutlined, MenuOutlined } from '@ant-design/icons';
+import { AreaChartOutlined, HistoryOutlined, SafetyCertificateOutlined , DollarCircleOutlined, DashboardOutlined, UserOutlined, FileOutlined, LogoutOutlined , EyeOutlined , EyeInvisibleOutlined , WalletOutlined,  TeamOutlined, IdcardOutlined, MenuOutlined } from '@ant-design/icons';
 import { Avatar, Button, Layout, Menu, theme, Modal, Typography, Tag, Divider, Descriptions, Drawer, Grid } from 'antd';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import Swal from 'sweetalert2'
@@ -25,11 +25,6 @@ const menuItems = [
     key: '/dashboard/history', 
     icon: <HistoryOutlined />,
     label: <span data-guide="menu-history">History</span>
-  },
-  {
-    key: '/dashboard/daily',
-    icon: <CalendarOutlined />,
-    label: <span data-guide="menu-daily">Daily</span>
   },
   {
     key: '/dashboard/investment',
@@ -63,22 +58,6 @@ const menuItems = [
   },
 ];
 
-const HeaderBalance = ({ label, source, amount, visible, icon, tone, onToggle, onSource }) => (
-  <div className={`app-header__balance app-header__balance--${tone}`}>
-    <span className="app-header__balance-icon">{icon}</span>
-    <div className="app-header__balance-copy">
-      <div className="app-header__balance-label">
-        <span>{label}</span>
-        <button type="button" className="app-header__balance-source" onClick={onSource}>{source}</button>
-      </div>
-      <div className="app-header__balance-value">
-        <strong>{visible ? new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(amount||0) : 'Rp **********'}</strong>
-        <button type="button" className="app-header__balance-eye" onClick={onToggle} aria-label={visible?'Sembunyikan nominal saldo':'Tampilkan nominal saldo'}>{visible?<EyeOutlined/>:<EyeInvisibleOutlined/>}</button>
-      </div>
-    </div>
-  </div>
-);
-
 const DashboardLayout = () => {
   const mode = useAutomaticTheme();
   const screens = useBreakpoint();
@@ -87,9 +66,7 @@ const DashboardLayout = () => {
   const [currentUser, setCurrentUser] = useState(getSessionUser() || { username: 'Guest', role: 'guest' });
   const [avatarUrl, setAvatarUrl] = useState(() => avatarFor(currentUser));
   const [cashAvailable, setCashAvailable] = useState(0);
-  const [dailyAvailable, setDailyAvailable] = useState(0);
-  const [showCashBalance, setShowCashBalance] = useState(false);
-  const [showDailyBalance, setShowDailyBalance] = useState(false);
+  const [showBalance, setShowBalance] = useState(false); 
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   const { token: { colorBgContainer, borderRadiusLG } } = theme.useToken();
@@ -113,21 +90,31 @@ const DashboardLayout = () => {
   }, []);
 
   const fetchSaldoNavbar = useCallback(async () => {
-    const now=new Date();
-    const [cashResult,dailyResult]=await Promise.allSettled([
-      api.get('/summary'),
-      api.get('/daily/summary',{params:{year:now.getFullYear(),month:now.getMonth()+1}}),
-    ]);
-    if (cashResult.status==='fulfilled'&&cashResult.value.data.status==='success') setCashAvailable(cashResult.value.data.data.grand_total||0);
-    else if (cashResult.status==='rejected') console.error('Gagal load Cash Available navbar',cashResult.reason);
-    if (dailyResult.status==='fulfilled'&&dailyResult.value.data.status==='success') setDailyAvailable(dailyResult.value.data.data.available_balance||0);
-    else if (dailyResult.status==='rejected') console.error('Gagal load saldo Daily navbar',dailyResult.reason);
+    try {
+      const res = await api.get('/summary');
+      if (res.data.status === 'success') {
+        setCashAvailable(res.data.data.grand_total || 0);
+      }
+    } catch (error) {
+      console.error("Gagal load saldo navbar", error);
+    }
   }, []);
 
+  const formatRupiah = (number) => {
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0
+    }).format(number || 0);
+  };
+
   useEffect(() => {
-    const timer=window.setTimeout(fetchSaldoNavbar,0);
-    return ()=>window.clearTimeout(timer);
-  }, [fetchSaldoNavbar]);
+    let active = true;
+    api.get('/summary').then(({ data }) => {
+      if (active && data.status === 'success') setCashAvailable(data.data.grand_total || 0);
+    }).catch(error => console.error('Gagal load saldo navbar', error));
+    return () => { active = false; };
+  }, []);
 
   const LogoutAccount = () => {
      Swal.fire({
@@ -162,7 +149,7 @@ const DashboardLayout = () => {
 
   const refreshAllData = () => {
       updateUserData();
-      return fetchSaldoNavbar();
+      fetchSaldoNavbar();
   }
 
   const showProfileModal = () => { setIsProfileModalOpen(true); };
@@ -220,9 +207,21 @@ const DashboardLayout = () => {
         <Header className="app-header">
           <div className="app-header__leading">
           {isMobile && <Button className="mobile-nav-trigger" type="text" icon={<MenuOutlined />} onClick={() => setMobileNavOpen(true)} aria-label="Buka menu halaman" />}
-          <div className="app-header__balances">
-            <div data-guide="cash-available"><HeaderBalance label="Cash Available" source="Dashboard" amount={cashAvailable} visible={showCashBalance} icon={<WalletOutlined/>} tone="cash" onToggle={()=>setShowCashBalance(value=>!value)} onSource={()=>navigate('/dashboard')}/></div>
-            <div data-guide="daily-available"><HeaderBalance label="Saldo Daily Tersedia" source="Daily" amount={dailyAvailable} visible={showDailyBalance} icon={<AppstoreAddOutlined/>} tone="daily" onToggle={()=>setShowDailyBalance(value=>!value)} onSource={()=>navigate('/dashboard/daily')}/></div>
+          <div data-guide="cash-available" className="app-header__balance" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+             <div style={{  padding: '5px 8px', borderRadius: '6px' }}>
+                <WalletOutlined style={{ color: '#52c41a', fontSize: '16px' }} />
+             </div>
+             <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Cash Available</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--text-main)' }}>
+                        {showBalance ? formatRupiah(cashAvailable) : 'Rp **********'}
+                    </span>
+                    <div onClick={() => setShowBalance(!showBalance)} style={{ cursor: 'pointer', color: '#1890ff', fontSize: '14px', display: 'flex' }}>
+                        {showBalance ? <EyeOutlined /> : <EyeInvisibleOutlined />}
+                    </div>
+                </div>
+             </div>
           </div>
           </div>
           <div className="app-header__actions">

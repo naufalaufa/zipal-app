@@ -13,7 +13,6 @@ const transactionRoutes = require('./routes/transactions');
 const goalsRoutes = require('./routes/goals');
 const agreementRoutes = require('./routes/agreement');
 const seedRoutes = require('./routes/seed');
-const dailyRoutes = require('./routes/daily');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -46,7 +45,6 @@ app.use(transactionRoutes);
 app.use(goalsRoutes);
 app.use(agreementRoutes);
 app.use(seedRoutes);
-app.use(dailyRoutes);
 
 // START SERVER
 app.listen(PORT, '0.0.0.0', () => {
