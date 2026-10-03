@@ -103,7 +103,7 @@ router.put('/transaction/:id', authenticateToken, async (req, res) => {
     } catch (error) { mutationError(res, error); }
 });
 
-router.get('/history', (req, res) => {
+router.get('/history', authenticateToken, (req, res) => {
     const send = (err, results) => {
         if (err) return res.status(500).json({ message: 'Gagal mengambil History.', code: err.code });
         res.set('Cache-Control', 'no-store').json({ status: 'success', data: results });

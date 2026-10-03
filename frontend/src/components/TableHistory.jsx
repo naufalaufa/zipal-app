@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Table, Tag, Card, Typography } from 'antd';
-import { UserOutlined, RobotOutlined, ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
+import { Table, Tag, Card, Typography, Button, Flex, message } from 'antd';
+import { UserOutlined, RobotOutlined, ArrowUpOutlined, ArrowDownOutlined, FileExcelOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import api from '../api';
+import {
+    applyHistoryTableState,
+    exportHistoryToExcel,
+    getHistoryUserDisplayName,
+} from '../utils/historyExport';
 
 const { Text } = Typography;
 const TableHistory = () => {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [exporting, setExporting] = useState(false);
+    const [tableState, setTableState] = useState({ filters: {}, sorter: {} });
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -38,6 +45,31 @@ const TableHistory = () => {
         }).format(number);
     };
 
+    const handleTableChange = (_pagination, filters, sorter) => {
+        setTableState({ filters, sorter: Array.isArray(sorter) ? sorter[0] || {} : sorter });
+    };
+
+    const handleExport = async () => {
+        if (exporting) return;
+
+        const exportData = applyHistoryTableState(data, tableState.filters, tableState.sorter);
+        if (exportData.length === 0) {
+            message.info('Tidak ada data history untuk diexport.');
+            return;
+        }
+
+        setExporting(true);
+        try {
+            await exportHistoryToExcel(exportData);
+            message.success('History berhasil didownload dalam format Excel.');
+        } catch (error) {
+            console.error('Gagal export history:', error);
+            message.error('Gagal mendownload data History.');
+        } finally {
+            setExporting(false);
+        }
+    };
+
     const columns = [
         {
             title: 'Tanggal',
@@ -53,17 +85,14 @@ const TableHistory = () => {
             render: (username) => {
                 let color = 'geekblue';
                 let icon = <UserOutlined />;
-                let name = username;
+                const name = getHistoryUserDisplayName(username);
 
                 if (username === 'naufalaufa') {
                     color = 'blue';
-                    name = 'Naufal Aufa';
                 } else if (username === 'zihraangelina') {
                     color = 'magenta';
-                    name = 'Zihra Angelina';
                 } else if (username === 'zipaladmin') {
                     color = 'gold';
-                    name = 'Admin Investasi';
                     icon = <RobotOutlined />;
                 }
                 return (
@@ -126,12 +155,24 @@ const TableHistory = () => {
 
     return (
         <Card style={{ margin: '20px', borderRadius: '10px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+            <Flex justify="flex-end" style={{ marginBottom: 16 }}>
+                <Button
+                    type="primary"
+                    icon={<FileExcelOutlined />}
+                    loading={exporting}
+                    disabled={loading || exporting}
+                    onClick={handleExport}
+                >
+                    Download Excel
+                </Button>
+            </Flex>
             <Table 
                 columns={columns} 
                 dataSource={data} 
                 loading={loading} 
                 pagination={{ pageSize: 10 }}
                 scroll={{ x: 800 }}
+                onChange={handleTableChange}
             />
         </Card>
     );
